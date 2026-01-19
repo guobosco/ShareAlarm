@@ -1,0 +1,56 @@
+<resources>
+    <!-- App Name -->
+    <string name="app_name">小秘书</string>
+    
+    <!-- Authentication -->
+    <string name="sign_in">登录</string>
+    <string name="sign_up">注册</string>
+    <string name="email">邮箱</string>
+    <string name="password">密码</string>
+    <string name="confirm_password">确认密码</string>
+    <string name="name">姓名</string>
+    <string name="sign_in_with_google">使用Google账号登录</string>
+    <string name="forgot_password">忘记密码？</string>
+    <string name="already_have_account">已有账号？立即登录</string>
+    <string name="dont_have_account">没有账号？立即注册</string>
+    
+    <!-- Organizations -->
+    <string name="organizations">组织</string>
+    <string name="create_organization">创建组织</string>
+    <string name="join_organization">加入组织</string>
+    <string name="organization_name">组织名称</string>
+    <string name="organization_code">组织ID</string>
+    <string name="members">成员</string>
+    <string name="leave_organization">退出组织</string>
+    
+    <!-- Reminders -->
+    <string name="reminders">提醒</string>
+    <string name="create_reminder">创建提醒</string>
+    <string name="event_name">事件名称</string>
+    <string name="description">描述</string>
+    <string name="event_time">事件时间</string>
+    <string name="location">地点</string>
+    <string name="alert_times">提醒时间</string>
+    <string name="add_alert_time">添加提醒时间</string>
+    <string name="participants">提醒人员</string>
+    <string name="select_participants">选择提醒人员</string>
+    
+    <!-- Common -->
+    <string name="save">保存</string>
+    <string name="cancel">取消</string>
+    <string name="delete">删除</string>
+    <string name="edit">编辑</string>
+    <string name="back">返回</string>
+    <string name="done">完成</string>
+    <string name="loading">加载中...</string>
+    <string name="error">错误</string>
+    <string name="success">成功</string>
+    <string name="no_data">暂无数据</string>
+    
+    <!-- Alarm -->
+    <string name="alarm_title">闹钟</string>
+    <string name="alarm_snooze">稍后提醒</string>
+    <string name="alarm_dismiss">关闭</string>
+    <string name="alarm_ringing">闹钟响铃</string>
+    
+</resources>
