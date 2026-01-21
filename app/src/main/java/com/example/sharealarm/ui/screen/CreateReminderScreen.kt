@@ -255,7 +255,7 @@ fun CreateReminderScreen(navController: NavController) {
                     Button(
                         onClick = {
                             if (title.isNotEmpty()) {
-                                // 在开发阶段，我们可以使用模拟数据，不依赖真实的Firebase用户
+                                // 在开发阶段，我们可以使用模拟数据，不依赖真实的云服务用户
                                 val mockUserId = "mock-user-id"
                                 val orgId = "test-org-id"
                                 val participants = listOf(mockUserId)

@@ -28,11 +28,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "11"
     }
     buildFeatures {
         compose = true
@@ -63,12 +63,11 @@ dependencies {
     implementation("androidx.compose.material3:material3:1.2.1")
     implementation("androidx.compose.material:material-icons-extended")
     
-    // 暂时移除Cloudbase依赖，先让项目构建成功
-    // Cloudbase dependencies will be added later
-    // implementation("com.tencent.cloudbase:core-android:1.9.0")
-    // implementation("com.tencent.cloudbase:auth-android:1.9.0")
-    // implementation("com.tencent.cloudbase:database-android:1.9.0")
-    // implementation("com.tencent.cloudbase:messaging-android:1.9.0")
+    // Cloudbase dependencies
+    implementation("com.tencent.cloudbase:core-android:1.9.0")
+    implementation("com.tencent.cloudbase:auth-android:1.9.0")
+    implementation("com.tencent.cloudbase:database-android:1.9.0")
+    implementation("com.tencent.cloudbase:messaging-android:1.9.0")
     
     // Room dependencies
     implementation("androidx.room:room-runtime:2.6.1")

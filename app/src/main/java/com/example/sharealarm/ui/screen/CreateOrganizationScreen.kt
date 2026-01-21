@@ -24,7 +24,7 @@ import com.example.sharealarm.ui.theme.ShareAlarmTheme
 
 /**
  * 创建组织屏幕
- * 功能：允许用户创建新的组织，输入组织名称并保存到Firebase Firestore
+ * 功能：允许用户创建新的组织，输入组织名称并保存到Cloudbase数据库
  */
 @Composable
 fun CreateOrganizationScreen(navController: NavController) {
