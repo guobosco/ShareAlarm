@@ -10,7 +10,7 @@ ShareAlarm 是一个使用 Kotlin 和 Jetpack Compose 开发的 Android 共享�
 - **UI 框架**: Jetpack Compose
 - **架构模式**: MVVM (Model-View-ViewModel)
 - **本地数据库**: Room
-- **云服务**: Firebase (已集成), Cloudbase (已配置但依赖被注释)
+- **云服务**: Cloudbase (已配置)
 - **导航**: Navigation Compose
 - **后台任务**: WorkManager
 
@@ -51,33 +51,26 @@ graph TD
     end
 
     subgraph "Repository 层"
-        F1 --> G1[FirebaseAuthService.kt]
         F1 --> G2[CloudbaseAuthService.kt]
         F2 --> H1[AlarmDatabase.kt]
-        F2 --> G3[FirebaseFirestoreService.kt]
         F2 --> G4[CloudbaseDatabaseService.kt]
-        F3 --> G3
         F3 --> G4
     end
 
     subgraph "Model 层"
-        G1 --> I1[User.kt]
-        G2 --> I1
+        G2 --> I1[User.kt]
         H1 --> I2[LocalReminder.kt]
         H1 --> J1[ReminderDao.kt]
         H1 --> K1[DateConverter.kt]
         H1 --> K2[DateListConverter.kt]
         H1 --> K3[StringListConverter.kt]
-        G3 --> I3[Reminder.kt]
-        G3 --> I4[Organization.kt]
-        G4 --> I3
-        G4 --> I4
+        G4 --> I3[Reminder.kt]
+        G4 --> I4[Organization.kt]
     end
 
     subgraph "服务层"
         L1[AlarmService.kt] --> L2[AlarmReceiver.kt]
         L3[NotificationService.kt] --> L2
-        L4[FirebaseMessagingService.kt] --> M1[FirebaseCloudMessaging]
         L5[CloudbaseMessagingService.kt] --> M2[CloudbaseCloudMessaging]
         E2 --> L1
         E2 --> L3
@@ -85,9 +78,7 @@ graph TD
 
     subgraph "应用配置"
         N1[ShareAlarmApplication.kt] --> H1
-        N1 --> G1
         N1 --> G2
-        N1 --> G3
         N1 --> G4
     end
 ```
@@ -101,13 +92,12 @@ graph TD
 **流程**:
 1. 用户在 `SignInScreen` 或 `SignUpScreen` 输入凭证
 2. `AuthViewModel` 调用 `AuthRepository` 处理认证请求
-3. `AuthRepository` 委托给具体的认证服务 (`FirebaseAuthService` 或 `CloudbaseAuthService`)
+3. `AuthRepository` 委托给具体的认证服务 (`CloudbaseAuthService`)
 4. 认证结果返回给 ViewModel，再更新 UI 状态
 
 **主要文件**:
 - `AuthViewModel.kt`: 管理认证状态和用户信息
 - `AuthRepository.kt`: 抽象认证逻辑，提供统一接口
-- `FirebaseAuthService.kt`: Firebase 认证服务实现
 - `CloudbaseAuthService.kt`: Cloudbase 认证服务实现
 
 ### 4.2 组织模块
@@ -117,7 +107,7 @@ graph TD
 **流程**:
 1. 用户在 `CreateOrganizationScreen` 创建组织或在 `JoinOrganizationScreen` 加入组织
 2. `OrganizationViewModel` 调用 `OrganizationRepository` 处理组织请求
-3. `OrganizationRepository` 委托给云服务 (`FirebaseDatabaseService` 或 `CloudbaseDatabaseService`)
+3. `OrganizationRepository` 委托给云服务 (`CloudbaseDatabaseService`)
 4. 组织数据返回给 ViewModel，再更新 UI 状态
 
 **主要文件**:
@@ -153,7 +143,7 @@ sequenceDiagram
     participant VM as ViewModel 层
     participant REPO as Repository 层
     participant LOCAL as 本地数据 (Room)
-    participant REMOTE as 远程数据 (Firebase/Cloudbase)
+    participant REMOTE as 远程数据 (Cloudbase)
     participant SERVICE as 服务层 (Alarm/Notification)
 
     UI->>VM: 用户操作 (点击、输入等)
@@ -187,8 +177,7 @@ sequenceDiagram
 
 | 依赖名称 | 状态 | 用途 |
 |---------|------|------|
-| com.tencent.cloudbase | 已注释 | 腾讯云服务 |
-| Firebase | 已集成 | 谷歌云服务 |
+| com.tencent.cloudbase | 已配置 | 腾讯云服务 |
 
 ## 7. 关键功能流程
 
@@ -200,7 +189,7 @@ flowchart TD
     B --> C[ReminderViewModel.createReminder()]
     C --> D[ReminderRepository.insertReminder()]
     D --> E[保存到本地 Room 数据库]
-    D --> F[同步到云端 Firebase/Cloudbase]
+    D --> F[同步到云端 Cloudbase]
     E --> G[设置系统闹钟]
     F --> G
     G --> H[返回 HomeScreen 显示新提醒]
@@ -221,14 +210,14 @@ flowchart TD
 ## 8. 架构优势
 
 1. **模块化设计**: 各模块职责清晰，便于维护和扩展
-2. **松耦合**: 通过接口抽象，便于替换具体实现（如从 Firebase 切换到 Cloudbase）
+2. **松耦合**: 通过接口抽象，便于后续扩展和维护
 3. **可测试性**: ViewModel 和 Repository 层易于进行单元测试
 4. **响应式 UI**: 利用 Compose 和 LiveData/StateFlow 实现响应式更新
 5. **数据一致性**: 本地数据库和云端数据同步，确保数据可靠性
 
 ## 9. 潜在改进点
 
-1. **云服务集成**: 完善 Cloudbase 服务集成，实现 Firebase 和 Cloudbase 的无缝切换
+1. **云服务集成**: 完善 Cloudbase 服务集成
 2. **错误处理**: 增强各层的错误处理机制，提高应用健壮性
 3. **性能优化**: 优化数据库查询和网络请求，减少资源消耗
 4. **测试覆盖**: 增加单元测试和 UI 测试的覆盖率
