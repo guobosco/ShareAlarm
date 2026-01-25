@@ -604,12 +604,23 @@ fun ClockTab(
                             val normalizedAngle = if (angle < 0) angle + 360 else angle
                             
                             if (isHourSelection.value) {
-                                val newHour = ((normalizedAngle / 30).toInt() + 1) % 12
-                                // Convert to 24-hour format if needed
-                                // Note: This implementation uses 12-hour format for display
-                                // but the actual hour value should be stored in 24-hour format
-                                // The conversion will happen when setting the calendar
-                                hour.value = if (newHour == 0) 12 else newHour
+                                // Calculate hour in 12-hour format first
+                                val newHour12 = ((normalizedAngle / 30).toInt() + 1) % 12
+                                val displayHour = if (newHour12 == 0) 12 else newHour12
+                                
+                                // Convert to 24-hour format based on current selection
+                                // If current hour is PM (13-23) and new hour is AM (1-11), keep as PM
+                                val newHour24 = if (hour.value >= 12 && displayHour < 12) {
+                                    displayHour + 12
+                                } else if (hour.value < 12 && displayHour == 12) {
+                                    12 // Noon
+                                } else if (hour.value >= 12 && displayHour == 12) {
+                                    0 // Midnight
+                                } else {
+                                    displayHour
+                                }
+                                
+                                hour.value = newHour24
                                 onTimeSelected(hour.value, minute.value)
                             } else {
                                 val newMinute = (normalizedAngle / 6).toInt()
