@@ -40,6 +40,7 @@ android {
 
     buildTypes {
         getByName("debug") {
+            signingConfig = signingConfigs.getByName("release")
             isDebuggable = true
         }
         getByName("release") {
@@ -49,6 +50,14 @@ android {
             isShrinkResources = false
             isCrunchPngs = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+        create("huawei") {
+            signingConfig = signingConfigs.getByName("release")
+            isDebuggable = false
+            isMinifyEnabled = false
+            isShrinkResources = false
+            isCrunchPngs = true
+            matchingFallbacks += listOf("release")
         }
     }
     compileOptions {
@@ -64,6 +73,8 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.4"
     }
+    
+    // 禁用基线配置文件生成
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
