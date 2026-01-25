@@ -15,16 +15,17 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.sharealarm.R
-import com.example.sharealarm.data.remote.CloudbaseAuthService
-import com.example.sharealarm.data.remote.CloudbaseDatabaseService
+import com.example.sharealarm.data.remote.CloudBaseAuthService
+import com.example.sharealarm.data.remote.CloudBaseDatabaseService
 import com.example.sharealarm.data.repository.OrganizationRepository
 import com.example.sharealarm.data.viewmodel.OrganizationViewModel
+import com.example.sharealarm.data.viewmodel.OrganizationViewModel.OrganizationState
 import com.example.sharealarm.ui.navigation.Screen
 import com.example.sharealarm.ui.theme.ShareAlarmTheme
 
 /**
  * 创建组织屏幕
- * 功能：允许用户创建新的组织，输入组织名称并保存到Cloudbase数据库
+ * 功能：允许用户创建新的组织，输入组织名称并保存到CloudBase数据库
  */
 @Composable
 fun CreateOrganizationScreen(navController: NavController) {
@@ -36,13 +37,8 @@ fun CreateOrganizationScreen(navController: NavController) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     
     // TODO: Replace with actual ViewModel instance from DI
-    val authService = remember { CloudbaseAuthService(
-        CloudbaseInitializer.getAuth(),
-        CloudbaseInitializer.getDatabase()
-    ) }
-    val databaseService = remember { CloudbaseDatabaseService(
-        CloudbaseInitializer.getDatabase()
-    ) }
+    val authService = remember { CloudBaseAuthService() }
+    val databaseService = remember { CloudBaseDatabaseService() }
     val organizationRepository = remember { OrganizationRepository(databaseService) }
     val organizationViewModel = remember { OrganizationViewModel(organizationRepository) }
     
@@ -52,17 +48,17 @@ fun CreateOrganizationScreen(navController: NavController) {
     // 监听状态变化，处理加载、成功和错误情况
     LaunchedEffect(key1 = organizationState) {
         when (organizationState) {
-            is com.example.sharealarm.data.viewmodel.OrganizationState.Success -> {
+            is OrganizationState.Success -> {
                 isLoading = false
                 navController.navigate(Screen.Home.route) { 
                     popUpTo(Screen.CreateOrganization.route) { inclusive = true }
                 }
             }
-            is com.example.sharealarm.data.viewmodel.OrganizationState.Error -> {
+            is OrganizationState.Error -> {
                 isLoading = false
-                errorMessage = (organizationState as com.example.sharealarm.data.viewmodel.OrganizationState.Error).message
+                errorMessage = (organizationState as OrganizationState.Error).message
             }
-            com.example.sharealarm.data.viewmodel.OrganizationState.Loading -> {
+            OrganizationState.Loading -> {
                 isLoading = true
             }
             else -> { /* Do nothing */ }
@@ -125,10 +121,12 @@ fun CreateOrganizationScreen(navController: NavController) {
                 
                 Button(
                     onClick = {
-                        if (name.isNotEmpty() && currentUser != null) {
-                            organizationViewModel.createOrganization(name, currentUser.uid)
-                        } else {
+                        if (name.isEmpty()) {
                             errorMessage = "请输入组织名称"
+                        } else if (currentUser == null) {
+                            errorMessage = "请先登录"
+                        } else {
+                            organizationViewModel.createOrganization(name, currentUser.id)
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),

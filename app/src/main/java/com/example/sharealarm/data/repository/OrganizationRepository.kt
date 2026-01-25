@@ -1,14 +1,14 @@
 package com.example.sharealarm.data.repository
 
 import com.example.sharealarm.data.model.Organization
-import com.example.sharealarm.data.remote.CloudbaseDatabaseService
+import com.example.sharealarm.data.remote.CloudBaseDatabaseService
 
 /**
  * 组织仓库
- * 功能：封装组织相关的业务逻辑，协调CloudbaseDatabaseService
- * @property databaseService Cloudbase数据库服务
+ * 功能：封装组织相关的业务逻辑，协调CloudBaseDatabaseService
+ * @property databaseService CloudBase数据库服务
  */
-class OrganizationRepository(private val databaseService: CloudbaseDatabaseService) {
+class OrganizationRepository(private val databaseService: CloudBaseDatabaseService) {
     
     /**
      * 创建组织

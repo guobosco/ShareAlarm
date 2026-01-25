@@ -29,14 +29,7 @@
             </intent-filter>
         </activity>
         
-        <!-- Cloudbase Messaging Service -->
-        <service
-            android:name=".service.MyCloudbaseMessagingService"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.tencent.cloudbase.MESSAGING_EVENT" />
-            </intent-filter>
-        </service>
+
         
         <!-- Alarm Receiver -->
         <receiver

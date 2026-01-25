@@ -52,5 +52,11 @@
     <string name="alarm_snooze">稍后提醒</string>
     <string name="alarm_dismiss">关闭</string>
     <string name="alarm_ringing">闹钟响铃</string>
+    <string name="alarm_channel_name">闹钟通知</string>
+    <string name="alarm_channel_description">用于显示闹钟提醒的通知渠道</string>
+    
+    <!-- Notification -->
+    <string name="reminder_channel_name">提醒通知</string>
+    <string name="reminder_channel_description">用于显示事件提醒的通知渠道</string>
     
 </resources>

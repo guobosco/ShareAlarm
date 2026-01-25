@@ -1,16 +1,16 @@
 package com.example.sharealarm.data.repository
 
 import com.example.sharealarm.data.model.User
-import com.example.sharealarm.data.remote.CloudbaseAuthService
-import com.example.sharealarm.data.remote.CloudbaseDatabaseService
+import com.example.sharealarm.data.remote.CloudBaseAuthService
+import com.example.sharealarm.data.remote.CloudBaseDatabaseService
 
 /**
  * 认证仓库
- * 功能：封装认证相关的业务逻辑，协调CloudbaseAuthService和CloudbaseDatabaseService
- * @property authService Cloudbase认证服务
- * @property databaseService Cloudbase数据库服务
+ * 功能：封装认证相关的业务逻辑，协调CloudBaseAuthService和CloudBaseDatabaseService
+ * @property authService CloudBase认证服务
+ * @property databaseService CloudBase数据库服务
  */
-class AuthRepository(private val authService: CloudbaseAuthService, private val databaseService: CloudbaseDatabaseService) {
+class AuthRepository(private val authService: CloudBaseAuthService, private val databaseService: CloudBaseDatabaseService) {
     
     /**
      * 用户注册
@@ -48,14 +48,14 @@ class AuthRepository(private val authService: CloudbaseAuthService, private val 
     fun getCurrentUser() = authService.currentUser
     
     /**
-     * 保存用户信息到Cloudbase数据库
+     * 保存用户信息到CloudBase数据库
      * @param user 用户对象
      * @return 保存结果
      */
     suspend fun saveUserToDatabase(user: User) = databaseService.saveUser(user)
     
     /**
-     * 从Cloudbase数据库获取用户信息
+     * 从CloudBase数据库获取用户信息
      * @param userId 用户ID
      * @return 用户信息，不存在返回null
      */

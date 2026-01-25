@@ -1,14 +1,14 @@
 package com.example.sharealarm.data.repository
 
 import com.example.sharealarm.data.model.Reminder
-import com.example.sharealarm.data.remote.CloudbaseDatabaseService
+import com.example.sharealarm.data.remote.CloudBaseDatabaseService
 
 /**
  * 提醒仓库
- * 功能：封装提醒相关的业务逻辑，协调CloudbaseDatabaseService
- * @property databaseService Cloudbase数据库服务
+ * 功能：封装提醒相关的业务逻辑，协调CloudBaseDatabaseService
+ * @property databaseService CloudBase数据库服务
  */
-class ReminderRepository(private val databaseService: CloudbaseDatabaseService) {
+class ReminderRepository(private val databaseService: CloudBaseDatabaseService) {
     
     /**
      * 创建提醒

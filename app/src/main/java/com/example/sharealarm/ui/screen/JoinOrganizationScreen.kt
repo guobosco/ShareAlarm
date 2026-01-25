@@ -13,10 +13,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.sharealarm.R
-import com.example.sharealarm.data.remote.CloudbaseAuthService
-import com.example.sharealarm.data.remote.CloudbaseDatabaseService
+import com.example.sharealarm.data.remote.CloudBaseAuthService
+import com.example.sharealarm.data.remote.CloudBaseDatabaseService
 import com.example.sharealarm.data.repository.OrganizationRepository
 import com.example.sharealarm.data.viewmodel.OrganizationViewModel
+import com.example.sharealarm.data.viewmodel.OrganizationViewModel.OrganizationState
 import com.example.sharealarm.ui.navigation.Screen
 import com.example.sharealarm.ui.theme.ShareAlarmTheme
 
@@ -35,13 +36,8 @@ fun JoinOrganizationScreen(navController: NavController) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     // TODO: Replace with actual ViewModel instance from DI
-    val authService = remember { CloudbaseAuthService(
-        CloudbaseInitializer.getAuth(),
-        CloudbaseInitializer.getDatabase()
-    ) }
-    val databaseService = remember { CloudbaseDatabaseService(
-        CloudbaseInitializer.getDatabase()
-    ) }
+    val authService = remember { CloudBaseAuthService() }
+    val databaseService = remember { CloudBaseDatabaseService() }
     val organizationRepository = remember { OrganizationRepository(databaseService) }
     val organizationViewModel = remember { OrganizationViewModel(organizationRepository) }
 
@@ -53,17 +49,17 @@ fun JoinOrganizationScreen(navController: NavController) {
     // 监听组织状态变化，处理加载、成功和错误情况
     LaunchedEffect(key1 = organizationState) {
         when (organizationState) {
-            is com.example.sharealarm.data.viewmodel.OrganizationState.Success -> {
+            is OrganizationState.Success -> {
                 isLoading = false
                 navController.navigate(Screen.Home.route) {
                     popUpTo(Screen.JoinOrganization.route) { inclusive = true }
                 }
             }
-            is com.example.sharealarm.data.viewmodel.OrganizationState.Error -> {
+            is OrganizationState.Error -> {
                 isLoading = false
-                errorMessage = (organizationState as com.example.sharealarm.data.viewmodel.OrganizationState.Error).message
+                errorMessage = (organizationState as OrganizationState.Error).message
             }
-            com.example.sharealarm.data.viewmodel.OrganizationState.Loading -> {
+            OrganizationState.Loading -> {
                 isLoading = true
             }
             else -> { /* Do nothing */ }
@@ -127,7 +123,7 @@ fun JoinOrganizationScreen(navController: NavController) {
                 Button(
                     onClick = {
                         if (orgId.isNotEmpty() && currentUser != null) {
-                            organizationViewModel.joinOrganization(currentUser.uid, orgId)
+                            organizationViewModel.joinOrganization(currentUser.id, orgId)
                         } else {
                             errorMessage = "请输入组织ID"
                         }

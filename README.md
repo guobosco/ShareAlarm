@@ -318,8 +318,8 @@ SignInScreen/SignUpScreen -> HomeScreen
 
 ## 联系方式
 
-- 项目维护者：[Your Name]
-- 项目地址：[GitHub Repository URL]
+- 项目维护者：BoscoGuo
+- 项目地址：https://github.com/guobosco/ShareAlarm/tree/main
 
 ## 更新日志
 

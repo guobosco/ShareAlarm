@@ -9,6 +9,7 @@ import com.example.sharealarm.ui.screen.CreateOrganizationScreen
 import com.example.sharealarm.ui.screen.CreateReminderScreen
 import com.example.sharealarm.ui.screen.HomeScreen
 import com.example.sharealarm.ui.screen.JoinOrganizationScreen
+import com.example.sharealarm.ui.screen.ProfileScreen
 import com.example.sharealarm.ui.screen.SignInScreen
 import com.example.sharealarm.ui.screen.SignUpScreen
 
@@ -39,6 +40,10 @@ fun AppNavHost() {
         composable(Screen.Home.route) {
             HomeScreen(navController = navController)
         }
+        // 我的页面屏幕路由
+        composable(Screen.Profile.route) {
+            ProfileScreen(navController = navController)
+        }
         // 创建组织屏幕路由
         composable(Screen.CreateOrganization.route) {
             CreateOrganizationScreen(navController = navController)
@@ -62,6 +67,7 @@ sealed class Screen(val route: String) {
     object SignIn : Screen("sign_in")
     object SignUp : Screen("sign_up")
     object Home : Screen("home")
+    object Profile : Screen("profile")
     object CreateOrganization : Screen("create_organization")
     object JoinOrganization : Screen("join_organization")
     object CreateReminder : Screen("create_reminder")

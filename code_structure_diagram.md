@@ -59,13 +59,14 @@ graph TD
 
     subgraph "Model 层"
         G2 --> I1[User.kt]
-        H1 --> I2[LocalReminder.kt]
-        H1 --> J1[ReminderDao.kt]
-        H1 --> K1[DateConverter.kt]
-        H1 --> K2[DateListConverter.kt]
-        H1 --> K3[StringListConverter.kt]
-        G4 --> I3[Reminder.kt]
-        G4 --> I4[Organization.kt]
+        H1 --> I2[local/entity/LocalReminder.kt]
+        H1 --> J1[local/dao/ReminderDao.kt]
+        H1 --> K1[local/converter/DateConverter.kt]
+        H1 --> K2[local/converter/DateListConverter.kt]
+        H1 --> K3[local/converter/StringListConverter.kt]
+        G4 --> I3[model/Reminder.kt]
+        G4 --> I4[model/Organization.kt]
+        G4 --> I1[model/User.kt]
     end
 
     subgraph "服务层"
@@ -77,9 +78,10 @@ graph TD
     end
 
     subgraph "应用配置"
-        N1[ShareAlarmApplication.kt] --> H1
-        N1 --> G2
-        N1 --> G4
+        N1[ShareAlarmApplication.kt] --> H1[AlarmDatabase.kt]
+        N1 --> G2[CloudbaseAuthService.kt]
+        N1 --> G4[CloudbaseDatabaseService.kt]
+        N1 --> L5[CloudbaseMessagingService.kt]
     end
 ```
 
@@ -130,10 +132,14 @@ graph TD
 - `ReminderViewModel.kt`: 管理提醒状态和数据
 - `ReminderRepository.kt`: 抽象提醒数据访问逻辑
 - `AlarmDatabase.kt`: 本地 Room 数据库
-- `Reminder.kt`: 提醒数据模型
-- `LocalReminder.kt`: 本地数据库提醒实体
+- `model/Reminder.kt`: 提醒数据模型
+- `local/entity/LocalReminder.kt`: 本地数据库提醒实体
 - `AlarmService.kt`: 闹钟服务
 - `AlarmReceiver.kt`: 闹钟广播接收器
+- `local/dao/ReminderDao.kt`: 提醒数据访问对象
+- `local/converter/DateConverter.kt`: 日期转换工具
+- `local/converter/DateListConverter.kt`: 日期列表转换工具
+- `local/converter/StringListConverter.kt`: 字符串列表转换工具
 
 ## 5. 数据流向
 
@@ -167,17 +173,31 @@ sequenceDiagram
 | androidx.core:core-ktx | 1.12.0 | Kotlin 扩展函数 |
 | androidx.lifecycle:lifecycle-runtime-ktx | 2.7.0 | 生命周期管理 |
 | androidx.activity:activity-compose | 1.8.2 | Compose 活动支持 |
-| androidx.compose | 2024.02.01 | UI 框架 |
+| androidx.compose:compose-bom | 2024.02.01 | UI 框架依赖管理 |
 | androidx.room:room-runtime | 2.6.1 | 本地数据库 |
+| androidx.room:room-ktx | 2.6.1 | Room Kotlin 扩展 |
 | androidx.lifecycle:lifecycle-viewmodel-ktx | 2.7.0 | ViewModel 支持 |
+| androidx.lifecycle:lifecycle-viewmodel-compose | 2.7.0 | Compose ViewModel 集成 |
 | androidx.navigation:navigation-compose | 2.8.0 | 导航组件 |
 | androidx.work:work-runtime-ktx | 2.9.0 | 后台任务 |
 
-### 6.2 可选依赖
+### 6.2 云服务依赖
 
-| 依赖名称 | 状态 | 用途 |
+| 依赖名称 | 版本 | 用途 |
 |---------|------|------|
-| com.tencent.cloudbase | 已配置 | 腾讯云服务 |
+| com.tencent.cloudbase:core-android | 1.9.0 | Cloudbase 核心服务 |
+| com.tencent.cloudbase:auth-android | 1.9.0 | Cloudbase 身份认证 |
+| com.tencent.cloudbase:database-android | 1.9.0 | Cloudbase 数据库 |
+| com.tencent.cloudbase:messaging-android | 1.9.0 | Cloudbase 消息推送 |
+
+### 6.3 测试依赖
+
+| 依赖名称 | 版本 | 用途 |
+|---------|------|------|
+| junit:junit | 4.13.2 | 单元测试框架 |
+| androidx.test.ext:junit | 1.1.5 | Android 单元测试扩展 |
+| androidx.test.espresso:espresso-core | 3.5.1 | UI 测试框架 |
+| androidx.compose.ui:ui-test-junit4 | 2024.02.01 | Compose UI 测试 |
 
 ## 7. 关键功能流程
 

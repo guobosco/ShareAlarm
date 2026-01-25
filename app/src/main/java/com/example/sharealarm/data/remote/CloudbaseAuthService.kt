@@ -1,43 +1,49 @@
 package com.example.sharealarm.data.remote
 
-import android.content.Context
+import android.util.Log
 import com.example.sharealarm.data.model.User
-import com.tencent.cloudbase.auth.Auth
-import com.tencent.cloudbase.auth.AuthException
-import com.tencent.cloudbase.auth.LoginState
-import com.tencent.cloudbase.database.CloudbaseDatabase
-import com.tencent.cloudbase.database.Query
-import com.tencent.cloudbase.database.Where
-import com.tencent.cloudbase.database.enums.QueryCommand
-import com.tencent.cloudbase.exception.CloudbaseException
+import com.tencent.tcb.cloudbase.CloudBaseCore
+import com.tencent.tcb.cloudbase.exception.CloudBaseException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Cloudbase 认证服务
- * 功能：封装 Cloudbase 认证相关的操作，包括注册、登录、登出和重置密码
- * @property auth Cloudbase 认证实例
- * @property db Cloudbase 数据库实例
+ * CloudBase 认证服务
+ * 功能：处理用户认证相关操作，包括注册、登录、登出等
  */
-class CloudbaseAuthService(private val auth: Auth, private val db: CloudbaseDatabase) {
-
+class CloudBaseAuthService {
+    
+    // CloudBase 核心实例
+    private val cloudBaseCore by lazy {
+        CloudBaseCore.getInstance()
+    }
+    
+    // 日志标签
+    private val TAG = "CloudBaseAuthService"
+    
     /**
      * 当前登录用户
      */
     val currentUser: User?
         get() {
-            val loginState = auth.getLoginState()
-            return if (loginState != null && loginState.isLogin) {
-                User(
-                    id = loginState.userId,
-                    name = loginState.nickName ?: "",
-                    email = loginState.email ?: ""
-                )
-            } else {
-                null
+            try {
+                val auth = cloudBaseCore.auth()
+                val userInfo = auth.getUserInfo()
+                return if (userInfo != null) {
+                    User(
+                        id = userInfo["_id"] as? String ?: "",
+                        name = userInfo["nickName"] as? String ?: userInfo["username"] as? String ?: "",
+                        email = userInfo["email"] as? String ?: ""
+                    )
+                } else {
+                    null
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "获取当前用户失败: ${e.message}")
+                return null
             }
         }
-
+    
     /**
      * 用户注册
      * @param email 用户邮箱
@@ -48,29 +54,37 @@ class CloudbaseAuthService(private val auth: Auth, private val db: CloudbaseData
     suspend fun signUp(email: String, password: String, name: String): User {
         return withContext(Dispatchers.IO) {
             try {
-                // 使用邮箱密码注册
-                val loginState = auth.signUpWithEmail(email, password)
+                val auth = cloudBaseCore.auth()
                 
-                // 保存用户信息到数据库
-                val usersCollection = db.collection("users")
-                val userData = mapOf(
-                    "id" to loginState.userId,
-                    "name" to name,
+                // 注册用户
+                val result = auth.signUpWithEmail(email, password)
+                
+                // 登录用户
+                auth.signInWithEmail(email, password)
+                
+                // 更新用户信息
+                val userInfo = mapOf(
+                    "nickName" to name,
                     "email" to email
                 )
-                usersCollection.add(userData)
+                auth.updateUserInfo(userInfo)
                 
-                return@withContext User(
-                    id = loginState.userId,
+                Log.d(TAG, "用户注册成功")
+                User(
+                    id = result["_id"] as? String ?: "",
                     name = name,
                     email = email
                 )
+            } catch (e: CloudBaseException) {
+                Log.e(TAG, "用户注册失败: ${e.message}")
+                throw e
             } catch (e: Exception) {
+                Log.e(TAG, "用户注册失败: ${e.message}")
                 throw e
             }
         }
     }
-
+    
     /**
      * 用户登录
      * @param email 用户邮箱
@@ -80,53 +94,118 @@ class CloudbaseAuthService(private val auth: Auth, private val db: CloudbaseData
     suspend fun signIn(email: String, password: String): User {
         return withContext(Dispatchers.IO) {
             try {
-                // 使用邮箱密码登录
-                val loginState = auth.signInWithEmail(email, password)
+                val auth = cloudBaseCore.auth()
                 
-                // 从数据库获取用户信息
-                val usersCollection = db.collection("users")
-                val query = usersCollection.where(
-                    Where(
-                        "id",
-                        QueryCommand.EQ,
-                        loginState.userId
-                    )
-                )
-                val result = query.get()
-                val userData = result.data.firstOrNull()?.data
+                // 登录用户
+                val result = auth.signInWithEmail(email, password)
                 
-                val userName = userData?.get("name") as? String ?: ""
-                
-                return@withContext User(
-                    id = loginState.userId,
-                    name = userName,
+                Log.d(TAG, "用户登录成功")
+                User(
+                    id = result["_id"] as? String ?: "",
+                    name = result["nickName"] as? String ?: result["username"] as? String ?: "",
                     email = email
                 )
+            } catch (e: CloudBaseException) {
+                Log.e(TAG, "用户登录失败: ${e.message}")
+                throw e
             } catch (e: Exception) {
+                Log.e(TAG, "用户登录失败: ${e.message}")
                 throw e
             }
         }
     }
-
+    
     /**
      * 重置密码
      * @param email 用户邮箱
      */
     suspend fun resetPassword(email: String) {
-        return withContext(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
             try {
-                // 发送密码重置邮件
-                auth.sendPasswordResetEmail(email)
+                val auth = cloudBaseCore.auth()
+                auth.sendResetPasswordEmail(email)
+                Log.d(TAG, "密码重置邮件发送成功: $email")
+            } catch (e: CloudBaseException) {
+                Log.e(TAG, "密码重置邮件发送失败: ${e.message}")
+                throw e
             } catch (e: Exception) {
+                Log.e(TAG, "密码重置邮件发送失败: ${e.message}")
                 throw e
             }
         }
     }
-
+    
+    /**
+     * 手机号登录
+     * @param phoneNumber 手机号
+     * @param verificationCode 验证码
+     * @return 登录成功后的用户对象
+     */
+    suspend fun signInWithPhone(phoneNumber: String, verificationCode: String): User {
+        return withContext(Dispatchers.IO) {
+            try {
+                // 模拟手机号登录
+                Log.d(TAG, "手机号登录成功: $phoneNumber")
+                User(
+                    id = "phone_${System.currentTimeMillis()}",
+                    name = "用户_${phoneNumber.takeLast(4)}",
+                    email = ""
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "手机号登录失败: ${e.message}")
+                throw e
+            }
+        }
+    }
+    
+    /**
+     * 发送手机号验证码
+     * @param phoneNumber 手机号
+     */
+    suspend fun sendPhoneVerificationCode(phoneNumber: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                // 模拟发送验证码，默认验证码为 123456
+                val defaultCode = "123456"
+                Log.d(TAG, "手机号验证码发送成功: $phoneNumber, 验证码: $defaultCode")
+            } catch (e: Exception) {
+                Log.e(TAG, "手机号验证码发送失败: ${e.message}")
+                throw e
+            }
+        }
+    }
+    
+    /**
+     * 微信授权登录
+     * @return 登录成功后的用户对象
+     */
+    suspend fun signInWithWechat(): User {
+        return withContext(Dispatchers.IO) {
+            try {
+                // 模拟微信授权登录
+                Log.d(TAG, "微信授权登录成功")
+                User(
+                    id = "wechat_${System.currentTimeMillis()}",
+                    name = "微信用户",
+                    email = ""
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "微信授权登录失败: ${e.message}")
+                throw e
+            }
+        }
+    }
+    
     /**
      * 用户登出
      */
     fun signOut() {
-        auth.signOut()
+        try {
+            val auth = cloudBaseCore.auth()
+            auth.signOut()
+            Log.d(TAG, "用户登出成功")
+        } catch (e: Exception) {
+            Log.e(TAG, "用户登出失败: ${e.message}")
+        }
     }
 }

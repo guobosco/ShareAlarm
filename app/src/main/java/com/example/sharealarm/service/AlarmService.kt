@@ -78,14 +78,14 @@ class AlarmService : Service() {
      */
     private fun showAlarmNotification() {
         // 点击通知后要启动的活动
-        val intent = Intent(this, ui.MainActivity::class.java).apply {
+        val intent = Intent(this, com.example.sharealarm.ui.MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
         val pendingIntent: PendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
         
         // 构建通知
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
             .setContentTitle(getString(R.string.alarm_title))
             .setContentText(getString(R.string.alarm_ringing))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
