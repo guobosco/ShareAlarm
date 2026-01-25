@@ -139,36 +139,53 @@ fun SignInScreen(navController: NavController) {
                             // 获取验证码按钮
                             Button(
                                 onClick = {
-                                    if (phoneNumber.isNotEmpty() && countdown == 0) {
-                                        if (isValidPhoneNumber(phoneNumber)) {
-                                            isLoading = true
-                                            // 发送验证码
-                                            CoroutineScope(Dispatchers.IO).launch {
-                                                try {
-                                                        authService.sendPhoneVerificationCode(phoneNumber)
-                                                        errorMessage = "验证码已发送，默认验证码：123456"
-                                                        // 启动倒计时
-                                                        withContext(Dispatchers.Main) {
-                                                            countdown = 60
-                                                            countdownJob?.cancel()
-                                                            countdownJob = CoroutineScope(Dispatchers.Main).launch {
-                                                                while (countdown > 0) {
-                                                                    delay(1000)
-                                                                    countdown--
-                                                                }
-                                                            }
-                                                        }
-                                                    } catch (e: Exception) {
-                                                        errorMessage = "验证码发送失败: ${e.message}"
-                                                    } finally {
-                                                        isLoading = false
-                                                    }
+                                    // 发送验证码
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        try {
+                                            // 表单验证
+                                            withContext(Dispatchers.Main) {
+                                                errorMessage = when {
+                                                    phoneNumber.isEmpty() -> "请输入手机号"
+                                                    !isValidPhoneNumber(phoneNumber) -> "请输入正确的手机号"
+                                                    countdown > 0 -> "请稍后再试"
+                                                    else -> null
+                                                }
                                             }
-                                        } else {
-                                            errorMessage = "请输入正确的手机号"
+                                            
+                                            // 如果表单验证通过，执行发送验证码逻辑
+                                            if (errorMessage != null) {
+                                                return@launch
+                                            }
+                                            
+                                            // 确保在主线程中更新加载状态
+                                            withContext(Dispatchers.Main) {
+                                                isLoading = true
+                                            }
+                                            authService.sendPhoneVerificationCode(phoneNumber)
+                                            // 确保在主线程中更新错误信息
+                                            withContext(Dispatchers.Main) {
+                                                errorMessage = "验证码已发送，默认验证码：123456"
+                                                // 启动倒计时
+                                                countdown = 60
+                                                countdownJob?.cancel()
+                                                countdownJob = CoroutineScope(Dispatchers.Main).launch {
+                                                    while (countdown > 0) {
+                                                        delay(1000)
+                                                        countdown--
+                                                    }
+                                                }
+                                            }
+                                        } catch (e: Exception) {
+                                            // 在主线程中更新错误信息
+                                            withContext(Dispatchers.Main) {
+                                                errorMessage = "验证码发送失败: ${e.message}"
+                                            }
+                                        } finally {
+                                            // 在主线程中更新加载状态
+                                            withContext(Dispatchers.Main) {
+                                                isLoading = false
+                                            }
                                         }
-                                    } else if (phoneNumber.isEmpty()) {
-                                        errorMessage = "请输入手机号"
                                     }
                                 },
                                 enabled = countdown == 0 && !isLoading && phoneNumber.isNotEmpty() && isValidPhoneNumber(phoneNumber)
@@ -184,32 +201,46 @@ fun SignInScreen(navController: NavController) {
                             // 登录按钮
                             Button(
                                 onClick = {
-                                    if (phoneNumber.isNotEmpty() && verificationCode.isNotEmpty() && isValidPhoneNumber(phoneNumber)) {
-                                        isLoading = true
-                                        // 手机号登录
-                                        CoroutineScope(Dispatchers.IO).launch {
-                                            try {
-                                                authService.signInWithPhone(phoneNumber, verificationCode)
-                                                // 登录成功后跳转到主页（在主线程中执行）
-                                                withContext(Dispatchers.Main) {
-                                                    navController.navigate(Screen.Home.route) {
-                                                        popUpTo(Screen.SignIn.route) { inclusive = true }
-                                                    }
-                                                }
-                                            } catch (e: Exception) {
-                                                // 在主线程中更新错误信息
-                                                withContext(Dispatchers.Main) {
-                                                    errorMessage = "登录失败: ${e.message}"
-                                                }
-                                            } finally {
-                                                // 在主线程中更新加载状态
-                                                withContext(Dispatchers.Main) {
-                                                    isLoading = false
+                                    // 手机号登录
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        try {
+                                            // 表单验证
+                                            withContext(Dispatchers.Main) {
+                                                errorMessage = when {
+                                                    phoneNumber.isEmpty() -> "请输入手机号"
+                                                    !isValidPhoneNumber(phoneNumber) -> "请输入正确的手机号"
+                                                    verificationCode.isEmpty() -> "请输入验证码"
+                                                    else -> null
                                                 }
                                             }
+                                            
+                                            // 如果表单验证通过，执行登录逻辑
+                                            if (errorMessage != null) {
+                                                return@launch
+                                            }
+                                            
+                                            // 确保在主线程中更新加载状态
+                                            withContext(Dispatchers.Main) {
+                                                isLoading = true
+                                            }
+                                            authService.signInWithPhone(phoneNumber, verificationCode)
+                                            // 登录成功后跳转到主页（在主线程中执行）
+                                            withContext(Dispatchers.Main) {
+                                                navController.navigate(Screen.Home.route) {
+                                                    popUpTo(Screen.SignIn.route) { inclusive = true }
+                                                }
+                                            }
+                                        } catch (e: Exception) {
+                                            // 在主线程中更新错误信息
+                                            withContext(Dispatchers.Main) {
+                                                errorMessage = "登录失败: ${e.message}"
+                                            }
+                                        } finally {
+                                            // 在主线程中更新加载状态
+                                            withContext(Dispatchers.Main) {
+                                                isLoading = false
+                                            }
                                         }
-                                    } else {
-                                        errorMessage = "请填写所有字段"
                                     }
                                 },
                                 modifier = Modifier
@@ -253,10 +284,13 @@ fun SignInScreen(navController: NavController) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                isLoading = true
                                 // 微信授权登录
                                 CoroutineScope(Dispatchers.IO).launch {
                                     try {
+                                        // 确保在主线程中更新加载状态
+                                        withContext(Dispatchers.Main) {
+                                            isLoading = true
+                                        }
                                         authService.signInWithWechat()
                                         // 登录成功后跳转到主页（在主线程中执行）
                                         withContext(Dispatchers.Main) {
@@ -367,10 +401,13 @@ fun SignInScreen(navController: NavController) {
                             Button(
                                 onClick = {
                                     if (email.isNotEmpty() && password.isNotEmpty()) {
-                                        isLoading = true
                                         // 邮箱登录
                                         CoroutineScope(Dispatchers.IO).launch {
                                             try {
+                                                // 确保在主线程中更新加载状态
+                                                withContext(Dispatchers.Main) {
+                                                    isLoading = true
+                                                }
                                                 authService.signIn(email, password)
                                                 // 登录成功后跳转到主页（在主线程中执行）
                                                 withContext(Dispatchers.Main) {
@@ -391,6 +428,7 @@ fun SignInScreen(navController: NavController) {
                                             }
                                         }
                                     } else {
+                                        // 直接在主线程中更新错误信息（clickable回调本身就在主线程中执行）
                                         errorMessage = "请填写所有字段"
                                     }
                                 },

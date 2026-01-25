@@ -21,9 +21,19 @@ class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         Log.d(TAG, "Alarm received")
         
-        // 启动闹钟服务，显示通知
+        // 获取提醒ID
+        val reminderId = intent.getStringExtra("reminderId")
+        Log.d(TAG, "Received reminderId: $reminderId")
+        
+        // 启动闹钟服务，显示通知并传递提醒ID
         val serviceIntent = Intent(context, AlarmService::class.java)
-        context.startForegroundService(serviceIntent)
+        serviceIntent.putExtra("reminderId", reminderId)
+        
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            context.startForegroundService(serviceIntent)
+        } else {
+            context.startService(serviceIntent)
+        }
         
         // 这里可以添加其他处理逻辑，比如播放声音、振动等
     }

@@ -29,12 +29,25 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("../sharealarm.keystore")
+            storePassword = "android"
+            keyAlias = "sharealarm"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
-        debug {
+        getByName("debug") {
             isDebuggable = true
         }
-        release {
+        getByName("release") {
+            signingConfig = signingConfigs.getByName("release")
+            isDebuggable = false
             isMinifyEnabled = false
+            isShrinkResources = false
+            isCrunchPngs = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }

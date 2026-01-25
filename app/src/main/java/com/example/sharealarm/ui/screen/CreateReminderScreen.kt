@@ -13,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -26,11 +27,15 @@ import com.example.sharealarm.data.viewmodel.ReminderViewModel
 import com.example.sharealarm.data.viewmodel.ReminderViewModel.ReminderState
 import com.example.sharealarm.ui.navigation.Screen
 import com.example.sharealarm.ui.theme.ShareAlarmTheme
+import android.os.Build
+import android.app.NotificationManager
+import android.util.Log
 import java.util.Date
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import androidx.compose.ui.window.Dialog
+import com.example.sharealarm.service.PermissionService
 
 @OptIn(ExperimentalMaterial3Api::class)
 /**
@@ -339,6 +344,8 @@ fun TimePickerDialog(
  */
 @Composable
 fun CreateReminderScreen(navController: NavController) {
+    val context = LocalContext.current
+
     // 时间格式
     val timeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
     
@@ -386,7 +393,7 @@ fun CreateReminderScreen(navController: NavController) {
     // TODO: Replace with actual ViewModel instance from DI
     val authService = remember { CloudBaseAuthService() }
     val databaseService = remember { CloudBaseDatabaseService() }
-    val reminderRepository = remember { ReminderRepository(databaseService) }
+    val reminderRepository = remember { ReminderRepository(databaseService, context) }
     val reminderViewModel = remember { ReminderViewModel(reminderRepository) }
 
     val currentUser = authService.currentUser
@@ -481,7 +488,11 @@ fun CreateReminderScreen(navController: NavController) {
                                 contentDescription = stringResource(R.string.back)
                             )
                         }
-                    }
+                    },
+                    colors = TopAppBarDefaults.smallTopAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 )
             }
         ) {
@@ -690,6 +701,23 @@ fun CreateReminderScreen(navController: NavController) {
                     Button(
                         onClick = {
                             if (title.isNotEmpty()) {
+                                // 检查是否有精确闹钟权限
+                                if (!PermissionService.hasExactAlarmPermission(context)) {
+                                    PermissionService.openExactAlarmPermissionSettings(context)
+                                    errorMessage = "请授予精确闹钟权限，否则提醒可能不会响铃"
+                                    return@Button
+                                }
+                                
+                                // 检查是否有通知权限
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    val notificationManager = context.getSystemService(NotificationManager::class.java)
+                                    if (!notificationManager.areNotificationsEnabled()) {
+                                        PermissionService.openNotificationPermissionSettings(context)
+                                        errorMessage = "请授予通知权限，否则提醒可能不会显示"
+                                        return@Button
+                                    }
+                                }
+                                
                                 // 验证事件时间是否晚于当前时间
                                 if (eventTimeDate.before(Date())) {
                                     errorMessage = "事件时间必须晚于当前时间"
@@ -735,6 +763,14 @@ fun CreateReminderScreen(navController: NavController) {
                                 val orgId = "test-org-id"
                                 val participants = listOf(mockUserId)
                                 
+                                Log.d("CreateReminderScreen", "Creating reminder with title: $title")
+                                Log.d("CreateReminderScreen", "Event time: $eventTime")
+                                Log.d("CreateReminderScreen", "Alert times count: ${finalAlertTimes.size}")
+                                
+                                finalAlertTimes.forEachIndexed { index, time ->
+                                    Log.d("CreateReminderScreen", "Alert time ${index + 1}: ${timeFormat.format(time)}")
+                                }
+                                
                                 val reminder = Reminder(
                                     orgId = orgId,
                                     title = title,
@@ -746,7 +782,9 @@ fun CreateReminderScreen(navController: NavController) {
                                     creator = mockUserId
                                 )
 
+                                Log.d("CreateReminderScreen", "Calling createReminder")
                                 reminderViewModel.createReminder(reminder)
+                                Log.d("CreateReminderScreen", "createReminder called successfully")
                             } else {
                                 errorMessage = "请填写事件名称"
                             }

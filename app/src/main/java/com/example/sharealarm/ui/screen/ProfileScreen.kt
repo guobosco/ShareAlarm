@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -41,12 +42,14 @@ import java.util.Calendar
  */
 @Composable
 fun ProfileScreen(navController: NavController) {
+    val context = LocalContext.current
+
     // TODO: Replace with actual ViewModel instance from DI
     val authService = remember { CloudBaseAuthService() }
     val databaseService = remember { CloudBaseDatabaseService() }
     val organizationRepository = remember { OrganizationRepository(databaseService) }
     val organizationViewModel = remember { OrganizationViewModel(organizationRepository) }
-    val reminderRepository = remember { ReminderRepository(databaseService) }
+    val reminderRepository = remember { ReminderRepository(databaseService, context) }
     val reminderViewModel = remember { ReminderViewModel(reminderRepository) }
 
     // 当前登录用户
@@ -104,13 +107,22 @@ fun ProfileScreen(navController: NavController) {
                                 contentDescription = stringResource(R.string.back)
                             )
                         }
-                    }
+                    },
+                    colors = TopAppBarDefaults.smallTopAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 )
             }
-        ) {
+        ) { paddingValues ->
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    top = paddingValues.calculateTopPadding() + 16.dp,
+                    end = 16.dp,
+                    bottom = paddingValues.calculateBottomPadding() + 32.dp
+                ),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // 用户信息区域
@@ -268,10 +280,7 @@ fun ProfileScreen(navController: NavController) {
                     }
                 }
 
-                // 底部间距
-                item {
-                    Spacer(modifier = Modifier.height(32.dp))
-                }
+
             }
         }
     }

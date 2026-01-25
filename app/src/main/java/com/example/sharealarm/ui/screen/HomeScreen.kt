@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -38,12 +39,14 @@ import android.util.Log
  */
 @Composable
 fun HomeScreen(navController: NavController) {
+    val context = LocalContext.current
+
     // TODO: Replace with actual ViewModel instance from DI
     val authService = remember { CloudBaseAuthService() }
     val databaseService = remember { CloudBaseDatabaseService() }
     val organizationRepository = remember { OrganizationRepository(databaseService) }
     val organizationViewModel = remember { OrganizationViewModel(organizationRepository) }
-    val reminderRepository = remember { ReminderRepository(databaseService) }
+    val reminderRepository = remember { ReminderRepository(databaseService, context) }
     val reminderViewModel = remember { ReminderViewModel(reminderRepository) }
 
     // 当前登录用户
@@ -120,7 +123,11 @@ fun HomeScreen(navController: NavController) {
                                 contentDescription = "我的页面"
                             )
                         }
-                    }
+                    },
+                    colors = TopAppBarDefaults.smallTopAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 )
             },
             floatingActionButton = {

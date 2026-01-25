@@ -83,7 +83,11 @@ fun CreateOrganizationScreen(navController: NavController) {
                                 contentDescription = stringResource(R.string.back)
                             )
                         }
-                    }
+                    },
+                    colors = TopAppBarDefaults.smallTopAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 )
             }
         ) {
