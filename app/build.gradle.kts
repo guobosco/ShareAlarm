@@ -29,6 +29,7 @@ android {
         }
     }
 
+    /*
     signingConfigs {
         create("release") {
             storeFile = file("../sharealarm.keystore")
@@ -37,14 +38,14 @@ android {
             keyPassword = "android"
         }
     }
+    */
 
     buildTypes {
         getByName("debug") {
-            signingConfig = signingConfigs.getByName("release")
             isDebuggable = true
         }
         getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
+            // signingConfig = signingConfigs.getByName("release")
             isDebuggable = false
             isMinifyEnabled = false
             isShrinkResources = false
@@ -52,7 +53,7 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         create("huawei") {
-            signingConfig = signingConfigs.getByName("release")
+            // signingConfig = signingConfigs.getByName("release")
             isDebuggable = false
             isMinifyEnabled = false
             isShrinkResources = false
