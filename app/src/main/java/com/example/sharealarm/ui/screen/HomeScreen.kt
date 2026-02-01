@@ -16,6 +16,9 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -159,11 +162,31 @@ fun HomeScreen(navController: NavController) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var reminderToDelete by remember { mutableStateOf<MockEvent?>(null) }
     
+    // 提示对话框
+    var showInfoDialog by remember { mutableStateOf(false) }
+    var infoDialogMessage by remember { mutableStateOf("") }
+    
+    if (showInfoDialog) {
+        AlertDialog(
+            onDismissRequest = { showInfoDialog = false },
+            title = { Text("提示") },
+            text = { Text(infoDialogMessage) },
+            confirmButton = {
+                TextButton(
+                    onClick = { showInfoDialog = false }
+                ) {
+                    Text("知道了", color = BellYellow)
+                }
+            },
+            containerColor = Color.White
+        )
+    }
+    
     if (showDeleteDialog && reminderToDelete != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("删除提醒") },
-            text = { Text("确定要删除“${reminderToDelete?.title}”吗？此操作无法撤销。") },
+            text = { Text("确定要删除“${reminderToDelete?.title}”吗？此操作无法撤销。\n您删除后，所有人都将删除该提醒。") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -271,6 +294,10 @@ fun HomeScreen(navController: NavController) {
                                         onLongClick = {
                                             reminderToDelete = item.event
                                             showDeleteDialog = true
+                                        },
+                                        onShowInfo = { message ->
+                                            infoDialogMessage = message
+                                            showInfoDialog = true
                                         }
                                     )
                                     is TimelineItem.ExpiredHeader -> ExpiredEventsBanner(
@@ -385,20 +412,77 @@ fun HomeTopBar() {
             
             Spacer(modifier = Modifier.weight(1f))
             
-            // 自定义细线条菜单图标
-            IconButton(
-                onClick = { /* TODO: Open Menu */ },
-                modifier = Modifier.size(24.dp)
-            ) {
-                androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
-                    val strokeWidth = 1.5.dp.toPx()
-                    val width = size.width
-                    val height = size.height
-                    val color = Color(0xFF8E8E93)
-                    
-                    drawLine(color = color, start = androidx.compose.ui.geometry.Offset(0f, height * 0.3f), end = androidx.compose.ui.geometry.Offset(width, height * 0.3f), strokeWidth = strokeWidth, cap = androidx.compose.ui.graphics.StrokeCap.Round)
-                    drawLine(color = color, start = androidx.compose.ui.geometry.Offset(0f, height * 0.5f), end = androidx.compose.ui.geometry.Offset(width, height * 0.5f), strokeWidth = strokeWidth, cap = androidx.compose.ui.graphics.StrokeCap.Round)
-                    drawLine(color = color, start = androidx.compose.ui.geometry.Offset(0f, height * 0.7f), end = androidx.compose.ui.geometry.Offset(width, height * 0.7f), strokeWidth = strokeWidth, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            // 右上角菜单
+            var menuExpanded by remember { mutableStateOf(false) }
+
+            Box(contentAlignment = Alignment.TopStart) {
+                // 自定义 2x2 四点图标按钮
+                IconButton(
+                    onClick = { menuExpanded = true },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                        val dotSize = 4.dp.toPx() // 点的大小
+                        val gap = 4.dp.toPx()     // 间距
+                        val color = Color(0xFF8E8E93)
+                        
+                        // 计算起始位置以居中
+                        val totalSize = dotSize * 2 + gap
+                        val startX = (size.width - totalSize) / 2
+                        val startY = (size.height - totalSize) / 2
+
+                        // 左上
+                        drawCircle(
+                            color = color, 
+                            radius = dotSize / 2, 
+                            center = androidx.compose.ui.geometry.Offset(startX + dotSize / 2, startY + dotSize / 2)
+                        )
+                        // 右上
+                        drawCircle(
+                            color = color, 
+                            radius = dotSize / 2, 
+                            center = androidx.compose.ui.geometry.Offset(startX + dotSize * 1.5f + gap, startY + dotSize / 2)
+                        )
+                        // 左下
+                        drawCircle(
+                            color = color, 
+                            radius = dotSize / 2, 
+                            center = androidx.compose.ui.geometry.Offset(startX + dotSize / 2, startY + dotSize * 1.5f + gap)
+                        )
+                        // 右下
+                        drawCircle(
+                            color = color, 
+                            radius = dotSize / 2, 
+                            center = androidx.compose.ui.geometry.Offset(startX + dotSize * 1.5f + gap, startY + dotSize * 1.5f + gap)
+                        )
+                    }
+                }
+
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false },
+                    modifier = Modifier.background(Color.White)
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("我的") },
+                        onClick = { menuExpanded = false },
+                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray) }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("搜索") },
+                        onClick = { menuExpanded = false },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("前往指定日期") },
+                        onClick = { menuExpanded = false },
+                        leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, tint = Color.Gray) }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("切换风格") },
+                        onClick = { menuExpanded = false },
+                        leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null, tint = Color.Gray) }
+                    )
                 }
             }
         }
@@ -481,7 +565,8 @@ fun EventCard(
     event: MockEvent, 
     navController: NavController, 
     onDelete: () -> Unit = {},
-    onLongClick: () -> Unit = {}
+    onLongClick: () -> Unit = {},
+    onShowInfo: (String) -> Unit = {}
 ) {
     // 时间显示在左侧，卡片在右侧
     Row(
@@ -524,11 +609,12 @@ fun EventCard(
 
         // 右侧卡片区域 (可侧滑)
         Box(modifier = Modifier.weight(1f)) {
+            // 侧滑状态管理 (公用)
+            val offsetX = remember { Animatable(0f) }
+            val scope = rememberCoroutineScope()
+            val maxSwipeDistance = 80.dp.value * LocalContext.current.resources.displayMetrics.density // 转换为像素
+
             if (event.isMine) {
-                // 侧滑状态管理
-                val offsetX = remember { Animatable(0f) }
-                val scope = rememberCoroutineScope()
-                val maxSwipeDistance = 80.dp.value * LocalContext.current.resources.displayMetrics.density // 转换为像素
                 
                 // 背景层 (删除按钮)
                 Box(
@@ -575,10 +661,30 @@ fun EventCard(
                             }
                         )
                 ) {
-                    EventCardContent(event, navController, onLongClick)
+                    EventCardContent(event, navController, onLongClick, onShowInfo)
                 }
             } else {
-                EventCardContent(event, navController, onLongClick)
+                // 别人的事件：也可以滑动，但会回弹
+                Box(
+                    modifier = Modifier
+                        .offset { IntOffset(offsetX.value.roundToInt(), 0) }
+                        .draggable(
+                            orientation = Orientation.Horizontal,
+                            state = rememberDraggableState { delta ->
+                                scope.launch {
+                                    // 限制滑动范围：只能向左滑，最大滑到 -maxSwipeDistance (可以稍微多一点阻尼效果)
+                                    val targetVal = (offsetX.value + delta * 0.5f).coerceIn(-maxSwipeDistance, 0f)
+                                    offsetX.snapTo(targetVal)
+                                }
+                            },
+                            onDragStopped = {
+                                // 松手时始终回弹关闭
+                                scope.launch { offsetX.animateTo(0f, tween(300)) }
+                            }
+                        )
+                ) {
+                    EventCardContent(event, navController, onLongClick, onShowInfo)
+                }
             }
         }
     }
@@ -588,7 +694,8 @@ fun EventCard(
 fun EventCardContent(
     event: MockEvent, 
     navController: NavController,
-    onLongClick: () -> Unit
+    onLongClick: () -> Unit,
+    onShowInfo: (String) -> Unit
 ) {
     // 纯卡片内容
     Card(
@@ -596,7 +703,13 @@ fun EventCardContent(
             .fillMaxWidth()
             .pointerInput(Unit) {
                 detectTapGestures(
-                    onLongPress = { if (event.isMine) onLongClick() },
+                    onLongPress = { 
+                        if (event.isMine) {
+                            onLongClick() 
+                        } else {
+                            onShowInfo("这是 ${event.creator} 创建的事件，您无法删除，可以去详情页取消响铃。")
+                        }
+                    },
                     onTap = { 
                         MockDataStore.markAsRead(event.id) // 标记为已读
                         navController.navigate(Screen.ReminderDetail.createRoute(event.id)) 

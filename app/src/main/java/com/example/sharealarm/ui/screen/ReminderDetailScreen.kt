@@ -168,18 +168,17 @@ fun ReminderDetailScreen(navController: NavController, reminderId: String?) {
                     Spacer(modifier = Modifier.height(24.dp))
                 }
 
-                // 提前提醒列表
+                // 提前提醒列表 -> 响铃时间
                 item {
                     Text(
-                        text = "提前提醒",
+                        text = "响铃时间",
                         fontSize = 13.sp,
                         color = Color.Gray
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         reminder.alertTimes.forEach { alertTime ->
-                            val diff = reminder.eventTime.time - alertTime.time
-                            val minutes = diff / (1000 * 60)
+                            val timeStr = fullDateFormatter.format(alertTime)
                             
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
@@ -188,7 +187,7 @@ fun ReminderDetailScreen(navController: NavController, reminderId: String?) {
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
-                                    text = "提前 $minutes 分钟",
+                                    text = timeStr,
                                     modifier = Modifier.padding(12.dp),
                                     fontSize = 16.sp
                                 )
