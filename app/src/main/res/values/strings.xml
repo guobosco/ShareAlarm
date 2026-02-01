@@ -1,6 +1,6 @@
 <resources>
     <!-- App Name -->
-    <string name="app_name">小秘书</string>
+    <string name="app_name">飞铃</string>
     
     <!-- Authentication -->
     <string name="sign_in">登录</string>

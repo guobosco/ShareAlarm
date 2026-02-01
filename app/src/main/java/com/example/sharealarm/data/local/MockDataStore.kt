@@ -55,7 +55,8 @@ object MockDataStore {
             title = "团队会议讨论项目进度",
             time = calendar.time,
             creator = _currentUser.value,
-            participants = listOf(_contacts.value[0])
+            participants = listOf(_contacts.value[0]),
+            isRead = true
         )
 
         // 明天的事件
@@ -66,7 +67,8 @@ object MockDataStore {
             title = "健身房锻炼",
             time = calendar.time,
             creator = _contacts.value[0], // 李四创建
-            participants = listOf(_currentUser.value)
+            participants = listOf(_currentUser.value),
+            isRead = false // 未读
         )
 
         calendar.set(Calendar.HOUR_OF_DAY, 18)
@@ -75,7 +77,8 @@ object MockDataStore {
             title = "晚餐约会",
             time = calendar.time,
             creator = _currentUser.value,
-            participants = listOf(_contacts.value[1])
+            participants = listOf(_contacts.value[1]),
+            isRead = true
         )
 
         // 过期事件
@@ -85,7 +88,8 @@ object MockDataStore {
             title = "完成月度报告",
             time = calendar.time,
             creator = _contacts.value[1], // 王五创建
-            participants = listOf(_currentUser.value)
+            participants = listOf(_currentUser.value),
+            isRead = false // 未读
         )
 
         _reminders.value = listOf(todayEvent, tomorrowEvent1, tomorrowEvent2, expiredEvent)
@@ -96,7 +100,8 @@ object MockDataStore {
         title: String, 
         time: Date, 
         creator: User, 
-        participants: List<User> = emptyList()
+        participants: List<User> = emptyList(),
+        isRead: Boolean = false
     ): Reminder {
         return Reminder(
             id = UUID.randomUUID().toString(),
@@ -105,6 +110,7 @@ object MockDataStore {
             eventTime = time,
             creator = creator.name, // 简化，直接存名字
             participants = participants.map { it.id },
+            isRead = isRead,
             alertTimes = listOf(
                 Date(time.time - 15 * 60 * 1000), // 提前15分钟
                 Date(time.time - 30 * 60 * 1000)  // 提前30分钟
@@ -115,7 +121,7 @@ object MockDataStore {
     }
 
     // 添加新提醒
-    fun addReminder(title: String, time: Date, note: String, participantIds: List<String>) {
+    fun addReminder(title: String, time: Date, note: String, participantIds: List<String>, alertOffsets: List<Int> = listOf(15)): Reminder {
         val newReminder = Reminder(
             id = UUID.randomUUID().toString(),
             title = title,
@@ -123,11 +129,29 @@ object MockDataStore {
             eventTime = time,
             creator = _currentUser.value.name,
             participants = participantIds,
-            alertTimes = listOf(Date(time.time - 15 * 60 * 1000)), // 默认提前15分钟
+            isRead = true, // 自己创建的默认已读
+            alertTimes = alertOffsets.map { Date(time.time - it * 60 * 1000L) }, // 根据偏移量列表计算提醒时间
             createdAt = System.currentTimeMillis(),
             updatedAt = System.currentTimeMillis()
         )
         _reminders.value = _reminders.value + newReminder
+        return newReminder
+    }
+    
+    // 标记为已读
+    fun markAsRead(id: String) {
+        val currentList = _reminders.value.toMutableList()
+        val index = currentList.indexOfFirst { it.id == id }
+        if (index != -1) {
+            val updatedReminder = currentList[index].copy(isRead = true)
+            currentList[index] = updatedReminder
+            _reminders.value = currentList
+        }
+    }
+
+    // 删除提醒
+    fun deleteReminder(id: String) {
+        _reminders.value = _reminders.value.filter { it.id != id }
     }
     
     // 获取单个提醒详情

@@ -27,6 +27,7 @@ data class Reminder(
     val alertTimes: List<Date> = emptyList(),
     val participants: List<String> = emptyList(),
     val creator: String = "",
+    val isRead: Boolean = false, // 是否已读
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )

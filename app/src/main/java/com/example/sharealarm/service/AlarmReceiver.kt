@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 
+import com.example.sharealarm.data.local.MockDataStore
+
 /**
  * 闹钟接收器
  * 功能：接收系统闹钟广播，触发提醒通知和闹钟服务
@@ -25,6 +27,16 @@ class AlarmReceiver : BroadcastReceiver() {
         val reminderId = intent.getStringExtra("reminderId")
         Log.d(TAG, "Received reminderId: $reminderId")
         
+        if (reminderId == null) return
+
+        // 关键修复：检查该提醒是否在当前数据源中有效
+        // 防止应用重启后，旧的系统残留闹钟（僵尸闹钟）意外触发
+        // 因为 Mock 模式下每次启动 ID 都会变，旧 ID 肯定找不到，从而完美过滤掉残留闹钟
+        if (MockDataStore.getReminderById(reminderId) == null) {
+            Log.w(TAG, "Reminder $reminderId not found in current session. Ignoring zombie alarm.")
+            return
+        }
+        
         // 启动闹钟服务，显示通知并传递提醒ID
         val serviceIntent = Intent(context, AlarmService::class.java)
         serviceIntent.putExtra("reminderId", reminderId)
@@ -34,7 +46,5 @@ class AlarmReceiver : BroadcastReceiver() {
         } else {
             context.startService(serviceIntent)
         }
-        
-        // 这里可以添加其他处理逻辑，比如播放声音、振动等
     }
 }

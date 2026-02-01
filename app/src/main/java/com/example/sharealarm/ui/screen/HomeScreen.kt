@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -34,6 +35,23 @@ import com.example.sharealarm.data.local.MockDataStore
 import com.example.sharealarm.ui.navigation.Screen
 import com.example.sharealarm.ui.theme.ShareAlarmTheme
 import com.example.sharealarm.ui.theme.*
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import kotlinx.coroutines.launch
 
 // 模拟数据模型 (UI 层)
 data class MockEvent(
@@ -42,7 +60,9 @@ data class MockEvent(
     val timeStr: String,
     val creator: String,
     val dateStr: String,
-    val isExpired: Boolean = false
+    val isExpired: Boolean = false,
+    val isRead: Boolean = false,
+    val isMine: Boolean = false // 新增字段
 )
 
 // 视图模型项
@@ -60,9 +80,114 @@ fun HomeScreen(navController: NavController) {
 
     // 状态：是否展开过期事件
     var isExpiredExpanded by remember { mutableStateOf(false) }
+    
+    // 权限检测相关
+    val context = LocalContext.current
+    var showPermissionDialog by remember { mutableStateOf(false) }
+
+    // 检查权限函数
+    fun checkPermissions(): Boolean {
+        // Android 12+ (S) 需要精确闹钟权限
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            val alarmManager = context.getSystemService(android.app.AlarmManager::class.java)
+            if (alarmManager?.canScheduleExactAlarms() == false) return false
+        }
+        // Android 13+ (T) 需要通知权限
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+             if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                 return false
+             }
+        }
+        return true
+    }
+
+    // 启动时检查权限
+    LaunchedEffect(Unit) {
+        if (!checkPermissions()) {
+            showPermissionDialog = true
+        }
+    }
+    
+    // 权限提示对话框
+    if (showPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showPermissionDialog = false },
+            title = { Text("需要权限", fontWeight = FontWeight.Bold) },
+            text = { Text("为了准时提醒您，飞铃需要“通知”和“闹钟”权限。") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showPermissionDialog = false
+                        // 跳转逻辑
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                             val alarmManager = context.getSystemService(android.app.AlarmManager::class.java)
+                             // 优先跳转精确闹钟设置
+                             if (alarmManager?.canScheduleExactAlarms() == false) {
+                                 val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                                 context.startActivity(intent)
+                             } else {
+                                 // 跳转应用详情页 (处理通知权限)
+                                 val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                     data = Uri.fromParts("package", context.packageName, null)
+                                 }
+                                 context.startActivity(intent)
+                             }
+                        } else {
+                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                data = Uri.fromParts("package", context.packageName, null)
+                            }
+                            context.startActivity(intent)
+                        }
+                    }
+                ) {
+                    Text("去设置", color = LinkBlue)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPermissionDialog = false }) {
+                    Text("取消", color = Color.Gray)
+                }
+            },
+            containerColor = Color.White,
+            titleContentColor = Color.Black,
+            textContentColor = Color(0xFF333333),
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
+    // 删除确认对话框
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var reminderToDelete by remember { mutableStateOf<MockEvent?>(null) }
+    
+    if (showDeleteDialog && reminderToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("删除提醒") },
+            text = { Text("确定要删除“${reminderToDelete?.title}”吗？此操作无法撤销。") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        reminderToDelete?.let { event ->
+                            MockDataStore.deleteReminder(event.id)
+                        }
+                        showDeleteDialog = false
+                        reminderToDelete = null
+                    }
+                ) {
+                    Text("删除", color = ErrorRed)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("取消", color = Color.Gray)
+                }
+            },
+            containerColor = Color.White
+        )
+    }
 
     // 处理数据：分组和排序
-    val timelineItems = remember(allReminders, isExpiredExpanded) {
+    val timelineItems = remember(allReminders, isExpiredExpanded, currentUser) {
         val now = System.currentTimeMillis()
         val items = mutableListOf<TimelineItem>()
         
@@ -74,14 +199,14 @@ fun HomeScreen(navController: NavController) {
             items.add(TimelineItem.ExpiredHeader(expiredEvents.size, isExpiredExpanded))
             
             if (isExpiredExpanded) {
-                // 展开时按时间升序排列，形成连续的时间流
-                val sortedExpired = expiredEvents.sortedBy { it.eventTime }
+                // 展开时按时间降序排列 (刚刚过期的在最上面)
+                val sortedExpired = expiredEvents.sortedByDescending { it.eventTime }
                 val expiredGrouped = sortedExpired.groupBy { getFormattedDate(it.eventTime) }
                 
                 expiredGrouped.forEach { (date, eventList) ->
                     items.add(TimelineItem.Header(date, isExpired = true))
                     eventList.forEach { event ->
-                        items.add(TimelineItem.Event(event.toMockEvent(isExpired = true)))
+                        items.add(TimelineItem.Event(event.toMockEvent(isExpired = true, currentUserName = currentUser.name)))
                     }
                 }
             }
@@ -94,7 +219,7 @@ fun HomeScreen(navController: NavController) {
         futureGrouped.forEach { (date, eventList) ->
             items.add(TimelineItem.Header(date))
             eventList.forEach { event ->
-                items.add(TimelineItem.Event(event.toMockEvent()))
+                items.add(TimelineItem.Event(event.toMockEvent(currentUserName = currentUser.name)))
             }
         }
         
@@ -136,7 +261,18 @@ fun HomeScreen(navController: NavController) {
                             items(timelineItems) { item ->
                                 when (item) {
                                     is TimelineItem.Header -> DateHeader(item.date, item.isExpired)
-                                    is TimelineItem.Event -> EventCard(item.event, navController)
+                                    is TimelineItem.Event -> EventCard(
+                                        event = item.event, 
+                                        navController = navController,
+                                        onDelete = {
+                                            reminderToDelete = item.event
+                                            showDeleteDialog = true
+                                        },
+                                        onLongClick = {
+                                            reminderToDelete = item.event
+                                            showDeleteDialog = true
+                                        }
+                                    )
                                     is TimelineItem.ExpiredHeader -> ExpiredEventsBanner(
                                         count = item.count,
                                         isExpanded = item.isExpanded,
@@ -153,7 +289,10 @@ fun HomeScreen(navController: NavController) {
 }
 
 // 辅助扩展函数：转换 Reminder 为 MockEvent (适配现有 UI)
-fun com.example.sharealarm.data.model.Reminder.toMockEvent(isExpired: Boolean = false): MockEvent {
+fun com.example.sharealarm.data.model.Reminder.toMockEvent(
+    isExpired: Boolean = false,
+    currentUserName: String = "" // 增加当前用户参数
+): MockEvent {
     val formatter = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
     val dayFormatter = java.text.SimpleDateFormat("MM-dd", java.util.Locale.getDefault())
     
@@ -175,7 +314,9 @@ fun com.example.sharealarm.data.model.Reminder.toMockEvent(isExpired: Boolean = 
         timeStr = "$timePrefix ${formatter.format(this.eventTime)}",
         creator = this.creator, // 暂时使用 creator name
         dateStr = getFormattedDate(this.eventTime),
-        isExpired = isExpired
+        isExpired = isExpired,
+        isRead = this.isRead,
+        isMine = this.creator == currentUserName // 判断是否是自己的
     )
 }
 
@@ -334,34 +475,39 @@ fun DateHeader(date: String, isExpired: Boolean = false) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EventCard(event: MockEvent, navController: NavController) {
+fun EventCard(
+    event: MockEvent, 
+    navController: NavController, 
+    onDelete: () -> Unit = {},
+    onLongClick: () -> Unit = {}
+) {
     // 时间显示在左侧，卡片在右侧
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 16.dp)
-            .clickable { navController.navigate(Screen.ReminderDetail.createRoute(event.id)) }, // 点击跳转详情
+            .padding(bottom = 16.dp),
         verticalAlignment = Alignment.Top
     ) {
-        // 左侧时间刻度
+        // 左侧时间刻度 (固定不变)
         Column(
             horizontalAlignment = Alignment.End,
             modifier = Modifier
-                .width(60.dp) // 固定宽度
+                .width(60.dp)
                 .padding(top = 20.dp, end = 12.dp)
         ) {
             val timeParts = event.timeStr.split(" ")
             if (timeParts.size > 1) {
                 Text(
-                    text = timeParts[1], // 具体时间 09:00
+                    text = timeParts[1],
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                     color = if (event.isExpired) Color.LightGray else Color(0xFF333333),
                     fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif
                 )
                 Text(
-                    text = timeParts[0], // 今天/明天
+                    text = timeParts[0],
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Light,
                     color = Color.Gray,
@@ -376,62 +522,167 @@ fun EventCard(event: MockEvent, navController: NavController) {
             }
         }
 
-        // 卡片内容
-        Card(
-            modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
-            border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0xFFE0E0E0))
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                // 标题和过期标签
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (event.isExpired) {
-                        Surface(
-                            color = Color(0xFFF2F2F7),
-                            shape = RoundedCornerShape(4.dp),
-                            modifier = Modifier.padding(end = 8.dp)
-                        ) {
-                            Text(
-                                text = "已过期",
-                                fontSize = 10.sp,
-                                color = Color.Gray,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
+        // 右侧卡片区域 (可侧滑)
+        Box(modifier = Modifier.weight(1f)) {
+            if (event.isMine) {
+                // 侧滑状态管理
+                val offsetX = remember { Animatable(0f) }
+                val scope = rememberCoroutineScope()
+                val maxSwipeDistance = 80.dp.value * LocalContext.current.resources.displayMetrics.density // 转换为像素
+                
+                // 背景层 (删除按钮)
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(Color.Red, RoundedCornerShape(16.dp))
+                        .clickable { 
+                            // 点击删除按钮时触发，并重置滑动状态
+                            onDelete()
+                            scope.launch { offsetX.animateTo(0f) }
                         }
-                    }
-                    
-                    Text(
-                        text = event.title,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Normal,
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
-                        color = if (event.isExpired) Color.Gray else Color(0xFF222222),
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        .padding(end = 20.dp),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "删除",
+                        tint = Color.White
                     )
                 }
+
+                // 前景层 (卡片内容)
+                Box(
+                    modifier = Modifier
+                        .offset { IntOffset(offsetX.value.roundToInt(), 0) }
+                        .draggable(
+                            orientation = Orientation.Horizontal,
+                            state = rememberDraggableState { delta ->
+                                scope.launch {
+                                    // 限制滑动范围：只能向左滑，最大滑到 -maxSwipeDistance
+                                    val targetVal = (offsetX.value + delta).coerceIn(-maxSwipeDistance, 0f)
+                                    offsetX.snapTo(targetVal)
+                                }
+                            },
+                            onDragStopped = {
+                                // 松手时的回弹/吸附逻辑
+                                if (offsetX.value < -maxSwipeDistance / 2) {
+                                    // 滑动超过一半，吸附到展开状态
+                                    scope.launch { offsetX.animateTo(-maxSwipeDistance, tween(300)) }
+                                } else {
+                                    // 否则回弹关闭
+                                    scope.launch { offsetX.animateTo(0f, tween(300)) }
+                                }
+                            }
+                        )
+                ) {
+                    EventCardContent(event, navController, onLongClick)
+                }
+            } else {
+                EventCardContent(event, navController, onLongClick)
+            }
+        }
+    }
+}
+
+@Composable
+fun EventCardContent(
+    event: MockEvent, 
+    navController: NavController,
+    onLongClick: () -> Unit
+) {
+    // 纯卡片内容
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onLongPress = { if (event.isMine) onLongClick() },
+                    onTap = { 
+                        MockDataStore.markAsRead(event.id) // 标记为已读
+                        navController.navigate(Screen.ReminderDetail.createRoute(event.id)) 
+                    }
+                )
+            },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0xFFE0E0E0))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            // 标题和过期标签
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (event.isExpired) {
+                    Surface(
+                        color = Color(0xFFF2F2F7),
+                        shape = RoundedCornerShape(4.dp),
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Text(
+                            text = "已过期",
+                            fontSize = 10.sp,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
                 
-                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = event.title,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Normal,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                    color = if (event.isExpired) Color.Gray else Color(0xFF222222),
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f) // 占据剩余空间
+                )
                 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        modifier = Modifier.size(12.dp),
-                        tint = Color.Gray
+                // 未读标记 (10dp 红点)
+                if (!event.isRead) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp) // 调整为 10dp
+                            .clip(CircleShape)
+                            .background(ErrorRed)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = event.creator,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Light,
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
-                        color = Color.Gray
-                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(6.dp))
+            
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = Color.Gray
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = event.creator,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Light,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                    color = Color.Gray
+                )
+                
+                // “我创建的”微型标签
+                if (event.isMine) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Surface(
+                        color = Color(0xFFF0F0F0),
+                        shape = RoundedCornerShape(2.dp)
+                    ) {
+                        Text(
+                            text = "我创建的",
+                            fontSize = 9.sp,
+                            color = Color(0xFF8E8E93),
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                        )
+                    }
                 }
             }
         }
