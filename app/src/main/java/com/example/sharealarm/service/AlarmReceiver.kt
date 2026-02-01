@@ -32,10 +32,14 @@ class AlarmReceiver : BroadcastReceiver() {
         // 关键修复：检查该提醒是否在当前数据源中有效
         // 防止应用重启后，旧的系统残留闹钟（僵尸闹钟）意外触发
         // 因为 Mock 模式下每次启动 ID 都会变，旧 ID 肯定找不到，从而完美过滤掉残留闹钟
+        // 注意：在实际测试中，如果应用被杀死，MockDataStore 会重置，导致刚设置的闹钟无法响铃
+        // 因此暂时注释掉此检查，确保测试时能正常响铃
+        /*
         if (MockDataStore.getReminderById(reminderId) == null) {
             Log.w(TAG, "Reminder $reminderId not found in current session. Ignoring zombie alarm.")
             return
         }
+        */
         
         // 启动闹钟服务，显示通知并传递提醒ID
         val serviceIntent = Intent(context, AlarmService::class.java)

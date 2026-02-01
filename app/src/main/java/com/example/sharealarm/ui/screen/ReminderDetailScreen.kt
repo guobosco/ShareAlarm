@@ -96,7 +96,7 @@ fun ReminderDetailScreen(navController: NavController, reminderId: String?) {
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         },
@@ -107,7 +107,7 @@ fun ReminderDetailScreen(navController: NavController, reminderId: String?) {
                 onCommentClick = { /* TODO */ }
             )
         },
-        containerColor = Color.White
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
@@ -140,14 +140,14 @@ fun ReminderDetailScreen(navController: NavController, reminderId: String?) {
                     Text(
                         text = "提醒内容",
                         fontSize = 13.sp,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = reminder.title,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1A1A1A)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                 }
@@ -157,13 +157,13 @@ fun ReminderDetailScreen(navController: NavController, reminderId: String?) {
                     Text(
                         text = "时间",
                         fontSize = 13.sp,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = fullDateFormatter.format(reminder.eventTime),
                         fontSize = 20.sp,
-                        color = Color(0xFF1A1A1A)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                 }
@@ -173,7 +173,7 @@ fun ReminderDetailScreen(navController: NavController, reminderId: String?) {
                     Text(
                         text = "响铃时间",
                         fontSize = 13.sp,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -182,14 +182,15 @@ fun ReminderDetailScreen(navController: NavController, reminderId: String?) {
                             
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFFF9F9F9),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFEEEEEE)),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
                                     text = timeStr,
                                     modifier = Modifier.padding(12.dp),
-                                    fontSize = 16.sp
+                                    fontSize = 16.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
@@ -202,19 +203,20 @@ fun ReminderDetailScreen(navController: NavController, reminderId: String?) {
                     Text(
                         text = "创建人",
                         fontSize = 13.sp,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFF9F9F9),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFEEEEEE)),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
                             text = reminder.creator,
                             modifier = Modifier.padding(12.dp),
-                            fontSize = 16.sp
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                     Spacer(modifier = Modifier.height(24.dp))
@@ -226,13 +228,13 @@ fun ReminderDetailScreen(navController: NavController, reminderId: String?) {
                         Text(
                             text = "备注",
                             fontSize = 13.sp,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = reminder.description,
                             fontSize = 16.sp,
-                            color = Color(0xFF333333),
+                            color = MaterialTheme.colorScheme.onSurface,
                             lineHeight = 24.sp
                         )
                         Spacer(modifier = Modifier.height(24.dp))
@@ -244,7 +246,7 @@ fun ReminderDetailScreen(navController: NavController, reminderId: String?) {
                     Text(
                         text = "提醒对象",
                         fontSize = 13.sp,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     // 这里可以展示头像列表，暂时留白或简单展示
@@ -282,9 +284,9 @@ fun DetailBottomBar(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surface)
     ) {
-        Divider(color = Color(0xFFEEEEEE))
+        Divider(color = MaterialTheme.colorScheme.outlineVariant)
         
         // 已查看状态
         Box(
@@ -301,13 +303,13 @@ fun DetailBottomBar(
                     imageVector = Icons.Default.Visibility,
                     contentDescription = null,
                     modifier = Modifier.size(14.dp),
-                    tint = Color.Gray
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "1/2 人已查看",
                     fontSize = 13.sp,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -341,7 +343,7 @@ fun DetailBottomBar(
             // 取消提醒
             Button(
                 onClick = onMuteClick,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF5F5F5)),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 shape = RoundedCornerShape(8.dp),
                 contentPadding = PaddingValues(0.dp),
                 modifier = Modifier.weight(1f)
@@ -349,11 +351,11 @@ fun DetailBottomBar(
                 Icon(
                     imageVector = Icons.Default.NotificationsOff,
                     contentDescription = null,
-                    tint = Color.Gray,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("取消提醒", color = Color(0xFF333333), fontSize = 13.sp)
+                Text("取消提醒", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
             }
             
             // 表情评论

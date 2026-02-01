@@ -30,6 +30,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // 检查并请求权限
+        checkAndRequestPermissions()
+        
         // 设置Compose内容
         setContent {
             // 使用应用主题
@@ -41,5 +44,27 @@ class MainActivity : ComponentActivity() {
         }
     }
     
-    // 移除未使用的权限检查代码
+    private fun checkAndRequestPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != 
+                PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                    this, 
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS), 
+                    REQUEST_PERMISSIONS_CODE
+                )
+            }
+        }
+        
+        // 检查精确闹钟权限 (Android 12+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = getSystemService(android.app.AlarmManager::class.java)
+            if (!alarmManager.canScheduleExactAlarms()) {
+                // 引导用户去设置页面开启权限
+                // 这里简单起见，可以直接跳转，或者弹出对话框提示
+                // PermissionService.openExactAlarmPermissionSettings(this)
+                Log.w(TAG, "Exact alarm permission not granted")
+            }
+        }
+    }
 }

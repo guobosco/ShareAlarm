@@ -254,7 +254,7 @@ fun HomeScreen(navController: NavController) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFF2F2F7)) // iOS 风格背景灰
+                .background(MaterialTheme.colorScheme.background) // iOS 风格背景灰
         ) {
             // 主体白色卡片，带大圆角
             Surface(
@@ -262,7 +262,7 @@ fun HomeScreen(navController: NavController) {
                     .fillMaxSize()
                     .padding(top = 0.dp),
                 shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp),
-                color = Color.White
+                color = MaterialTheme.colorScheme.surface
             ) {
                 Scaffold(
                     topBar = { HomeTopBar() },
@@ -365,12 +365,12 @@ fun EmptyStateView(paddingValues: PaddingValues) {
                 imageVector = Icons.Default.Coffee,
                 contentDescription = "Empty State",
                 modifier = Modifier.size(80.dp),
-                tint = Color(0xFFE0E0E0)
+                tint = MaterialTheme.colorScheme.outlineVariant
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "暂无提醒，来杯咖啡休息一下吧",
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 16.sp,
                 fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
                 fontWeight = FontWeight.Light
@@ -396,7 +396,7 @@ fun HomeTopBar() {
                     fontWeight = FontWeight.ExtraLight,
                     fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
                     letterSpacing = 2.sp,
-                    color = Color(0xFF1A1A1A),
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.alignByBaseline()
                 )
                 Spacer(modifier = Modifier.width(12.dp))
@@ -405,7 +405,7 @@ fun HomeTopBar() {
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Thin,
                     fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
-                    color = Color(0xFF8E8E93),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.alignByBaseline()
                 )
             }
@@ -424,7 +424,7 @@ fun HomeTopBar() {
                     androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
                         val dotSize = 4.dp.toPx() // 点的大小
                         val gap = 4.dp.toPx()     // 间距
-                        val color = Color(0xFF8E8E93)
+                        val color = Color(0xFF8E8E93) // Icon color can stay fixed or use onSurfaceVariant, let's keep it fixed for now or use theme
                         
                         // 计算起始位置以居中
                         val totalSize = dotSize * 2 + gap
@@ -461,27 +461,27 @@ fun HomeTopBar() {
                 DropdownMenu(
                     expanded = menuExpanded,
                     onDismissRequest = { menuExpanded = false },
-                    modifier = Modifier.background(Color.White)
+                    modifier = Modifier.background(MaterialTheme.colorScheme.surface)
                 ) {
                     DropdownMenuItem(
-                        text = { Text("我的") },
+                        text = { Text("我的", color = MaterialTheme.colorScheme.onSurface) },
                         onClick = { menuExpanded = false },
-                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray) }
+                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                     )
                     DropdownMenuItem(
-                        text = { Text("搜索") },
+                        text = { Text("搜索", color = MaterialTheme.colorScheme.onSurface) },
                         onClick = { menuExpanded = false },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) }
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                     )
                     DropdownMenuItem(
-                        text = { Text("前往指定日期") },
+                        text = { Text("前往指定日期", color = MaterialTheme.colorScheme.onSurface) },
                         onClick = { menuExpanded = false },
-                        leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, tint = Color.Gray) }
+                        leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                     )
                     DropdownMenuItem(
-                        text = { Text("切换风格") },
+                        text = { Text("切换风格", color = MaterialTheme.colorScheme.onSurface) },
                         onClick = { menuExpanded = false },
-                        leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null, tint = Color.Gray) }
+                        leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                     )
                 }
             }
@@ -489,8 +489,8 @@ fun HomeTopBar() {
         
         // 细细的黑线 (分割线)
         Divider(
-            color = Color(0xFFE0E0E0),
-            thickness = 0.5.dp
+            color = MaterialTheme.colorScheme.outlineVariant,
+            thickness = 1.dp
         )
     }
 }
@@ -498,7 +498,7 @@ fun HomeTopBar() {
 @Composable
 fun ExpiredEventsBanner(count: Int, isExpanded: Boolean, onToggle: () -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Divider(color = Color(0xFFF0F0F0), thickness = 1.dp)
+        Divider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 1.dp)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -515,18 +515,18 @@ fun ExpiredEventsBanner(count: Int, isExpanded: Boolean, onToggle: () -> Unit) {
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Light,
                     fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                     contentDescription = null,
-                    tint = Color.Gray,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp)
                 )
             }
         }
-        Divider(color = Color(0xFFF0F0F0), thickness = 1.dp)
+        Divider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 1.dp)
     }
 }
 
@@ -552,7 +552,7 @@ fun DateHeader(date: String, isExpired: Boolean = false) {
         Text(
             text = date,
             fontSize = 24.sp,
-            color = if (isExpired) Color.Gray else Color(0xFF333333),
+            color = if (isExpired) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Light,
             fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif
         )
@@ -588,21 +588,21 @@ fun EventCard(
                     text = timeParts[1],
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
-                    color = if (event.isExpired) Color.LightGray else Color(0xFF333333),
+                    color = if (event.isExpired) Color.LightGray else MaterialTheme.colorScheme.onSurface,
                     fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif
                 )
                 Text(
                     text = timeParts[0],
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Light,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif
                 )
             } else {
                 Text(
                     text = event.timeStr,
                     fontSize = 14.sp,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -717,9 +717,9 @@ fun EventCardContent(
                 )
             },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0xFFE0E0E0))
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -728,14 +728,14 @@ fun EventCardContent(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (event.isExpired) {
                     Surface(
-                        color = Color(0xFFF2F2F7),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
                         shape = RoundedCornerShape(4.dp),
                         modifier = Modifier.padding(end = 8.dp)
                     ) {
                         Text(
                             text = "已过期",
                             fontSize = 10.sp,
-                            color = Color.Gray,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
@@ -746,7 +746,7 @@ fun EventCardContent(
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Normal,
                     fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
-                    color = if (event.isExpired) Color.Gray else Color(0xFF222222),
+                    color = if (event.isExpired) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f) // 占据剩余空间
@@ -771,7 +771,7 @@ fun EventCardContent(
                     imageVector = Icons.Default.Person,
                     contentDescription = null,
                     modifier = Modifier.size(12.dp),
-                    tint = Color.Gray
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
@@ -779,20 +779,20 @@ fun EventCardContent(
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Light,
                     fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 
                 // “我创建的”微型标签
                 if (event.isMine) {
                     Spacer(modifier = Modifier.width(6.dp))
                     Surface(
-                        color = Color(0xFFF0F0F0),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
                         shape = RoundedCornerShape(2.dp)
                     ) {
                         Text(
                             text = "我创建的",
                             fontSize = 9.sp,
-                            color = Color(0xFF8E8E93),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                         )
                     }

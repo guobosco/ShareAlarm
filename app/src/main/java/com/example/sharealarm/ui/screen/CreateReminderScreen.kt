@@ -160,11 +160,11 @@ fun CreateReminderScreen(navController: NavController) {
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         },
-        containerColor = Color(0xFFF2F2F7) // iOS 背景灰
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
@@ -182,15 +182,17 @@ fun CreateReminderScreen(navController: NavController) {
                             title = it
                             errorMessage = null 
                         },
-                        placeholder = { Text("请输入提醒内容", color = Color.LightGray) },
+                        placeholder = { Text("请输入提醒内容", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .focusRequester(focusRequester), // 绑定焦点请求器
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedContainerColor = Color.White,
-                            focusedContainerColor = Color.White,
-                            unfocusedBorderColor = Color(0xFFE5E5EA),
-                            focusedBorderColor = LinkBlue
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                            focusedBorderColor = LinkBlue,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                         ),
                         shape = RoundedCornerShape(12.dp),
                         singleLine = true,
@@ -221,8 +223,8 @@ fun CreateReminderScreen(navController: NavController) {
                                 .height(56.dp)
                                 .clickable { showDatePicker = true },
                             shape = RoundedCornerShape(12.dp),
-                            color = Color.White,
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE5E5EA))
+                            color = MaterialTheme.colorScheme.surface,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -231,12 +233,13 @@ fun CreateReminderScreen(navController: NavController) {
                                 Text(
                                     text = SimpleDateFormat("yyyy年MM月dd日", Locale.CHINA).format(eventDate),
                                     modifier = Modifier.weight(1f),
-                                    fontSize = 16.sp
+                                    fontSize = 16.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Icon(
                                     imageVector = Icons.Default.CalendarMonth,
                                     contentDescription = null,
-                                    tint = Color.Gray,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -249,8 +252,8 @@ fun CreateReminderScreen(navController: NavController) {
                                 .height(56.dp)
                                 .clickable { showTimePicker = true },
                             shape = RoundedCornerShape(12.dp),
-                            color = Color.White,
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE5E5EA))
+                            color = MaterialTheme.colorScheme.surface,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -259,12 +262,13 @@ fun CreateReminderScreen(navController: NavController) {
                                 Text(
                                     text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(eventDate),
                                     modifier = Modifier.weight(1f),
-                                    fontSize = 16.sp
+                                    fontSize = 16.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Icon(
                                     imageVector = Icons.Default.Schedule,
                                     contentDescription = null,
-                                    tint = Color.Gray,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -295,7 +299,7 @@ fun CreateReminderScreen(navController: NavController) {
                                 expanded = showAlertMenu,
                                 onDismissRequest = { showAlertMenu = false },
                                 modifier = Modifier
-                                    .background(Color.White)
+                                    .background(MaterialTheme.colorScheme.surface)
                                     .width(200.dp)
                             ) {
                                 val options = listOf(30, 60, 120)
@@ -304,7 +308,7 @@ fun CreateReminderScreen(navController: NavController) {
                                 options.forEach { minutes ->
                                     if (!alertOffsets.contains(minutes)) {
                                         DropdownMenuItem(
-                                            text = { Text(optionLabels[minutes]!!) },
+                                            text = { Text(optionLabels[minutes]!!, color = MaterialTheme.colorScheme.onSurface) },
                                             onClick = { 
                                                 alertOffsets.add(minutes)
                                                 alertOffsets.sort() // 保持顺序
@@ -314,9 +318,9 @@ fun CreateReminderScreen(navController: NavController) {
                                     }
                                 }
                                 
-                                Divider()
+                                Divider(color = MaterialTheme.colorScheme.outlineVariant)
                                 DropdownMenuItem(
-                                    text = { Text("自定义时间...") },
+                                    text = { Text("自定义时间...", color = MaterialTheme.colorScheme.onSurface) },
                                     onClick = { 
                                         showAlertMenu = false
                                         // 初始化为当前事件时间，方便调整
@@ -331,12 +335,12 @@ fun CreateReminderScreen(navController: NavController) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
-                        color = Color.White,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE5E5EA))
+                        color = MaterialTheme.colorScheme.surface,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Column {
                             alertOffsets.forEachIndexed { index, minutes ->
-                                if (index > 0) Divider(color = Color(0xFFF2F2F7), thickness = 1.dp)
+                                if (index > 0) Divider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp)
                                 
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -351,7 +355,8 @@ fun CreateReminderScreen(navController: NavController) {
                                     Text(
                                         text = alertText,
                                         fontSize = 16.sp,
-                                        modifier = Modifier.weight(1f)
+                                        modifier = Modifier.weight(1f),
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                     
                                     // 删除按钮
@@ -362,7 +367,7 @@ fun CreateReminderScreen(navController: NavController) {
                                         Icon(
                                             imageVector = Icons.Default.Close,
                                             contentDescription = "删除",
-                                            tint = Color.Gray,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.size(16.dp)
                                         )
                                     }
@@ -372,7 +377,7 @@ fun CreateReminderScreen(navController: NavController) {
                             if (alertOffsets.isEmpty()) {
                                 Text(
                                     text = "暂无提醒",
-                                    color = Color.Gray,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(16.dp),
                                     fontSize = 14.sp
                                 )
@@ -388,15 +393,17 @@ fun CreateReminderScreen(navController: NavController) {
                     OutlinedTextField(
                         value = description,
                         onValueChange = { description = it },
-                        placeholder = { Text("添加备注信息...", color = Color.LightGray) },
+                        placeholder = { Text("添加备注信息...", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(120.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedContainerColor = Color.White,
-                            focusedContainerColor = Color.White,
-                            unfocusedBorderColor = Color(0xFFE5E5EA),
-                            focusedBorderColor = LinkBlue
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                            focusedBorderColor = LinkBlue,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                         ),
                         shape = RoundedCornerShape(12.dp)
                     )
@@ -409,13 +416,13 @@ fun CreateReminderScreen(navController: NavController) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFFF5F5F5), // 灰色背景表示只读
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE5E5EA))
+                        color = MaterialTheme.colorScheme.surfaceVariant, // 灰色背景表示只读
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Text(
                             text = currentUser.name,
                             modifier = Modifier.padding(16.dp),
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -429,13 +436,13 @@ fun CreateReminderScreen(navController: NavController) {
                             .fillMaxWidth()
                             .clickable { showParticipantDialog = true },
                         shape = RoundedCornerShape(12.dp),
-                        color = Color.White,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE5E5EA))
+                        color = MaterialTheme.colorScheme.surface,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Text(
                             text = if (selectedParticipants.isEmpty()) "选择提醒对象" else "已选 ${selectedParticipants.size} 人",
                             modifier = Modifier.padding(16.dp),
-                            color = if (selectedParticipants.isEmpty()) Color.LightGray else Color.Black
+                            color = if (selectedParticipants.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -470,7 +477,7 @@ fun CreateReminderScreen(navController: NavController) {
             ModalBottomSheet(
                 onDismissRequest = { showCustomDatePicker = false },
                 sheetState = sheetState,
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
@@ -481,7 +488,8 @@ fun CreateReminderScreen(navController: NavController) {
                                 text = "选择提醒日期",
                                 modifier = Modifier.padding(start = 24.dp, end = 12.dp, top = 16.dp),
                                 fontSize = 16.sp,
-                                fontWeight = FontWeight.Medium
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         },
                         headline = {
@@ -496,18 +504,22 @@ fun CreateReminderScreen(navController: NavController) {
                                     text = dateText,
                                     fontSize = 32.sp,
                                     lineHeight = 40.sp,
-                                    fontWeight = FontWeight.Normal
+                                    fontWeight = FontWeight.Normal,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         },
                         showModeToggle = false,
                         colors = DatePickerDefaults.colors(
-                            containerColor = Color.White,
+                            containerColor = MaterialTheme.colorScheme.surface,
                             selectedDayContainerColor = LinkBlue,
                             todayDateBorderColor = LinkBlue,
                             todayContentColor = LinkBlue,
-                            weekdayContentColor = Color.Gray,
-                            selectedDayContentColor = Color.White
+                            weekdayContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            selectedDayContentColor = MaterialTheme.colorScheme.onPrimary,
+                            dayContentColor = MaterialTheme.colorScheme.onSurface,
+                            navigationContentColor = MaterialTheme.colorScheme.onSurface,
+                            dividerColor = MaterialTheme.colorScheme.outlineVariant
                         )
                     )
                     
@@ -518,7 +530,7 @@ fun CreateReminderScreen(navController: NavController) {
                         horizontalArrangement = Arrangement.End
                     ) {
                         TextButton(onClick = { showCustomDatePicker = false }) {
-                            Text("取消", color = Color.Gray)
+                            Text("取消", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Button(
@@ -560,7 +572,7 @@ fun CreateReminderScreen(navController: NavController) {
             ModalBottomSheet(
                 onDismissRequest = { showCustomTimePicker = false },
                 sheetState = sheetState,
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
             ) {
                 Column(
@@ -571,24 +583,25 @@ fun CreateReminderScreen(navController: NavController) {
                         text = "选择提醒时间",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(vertical = 16.dp)
+                        modifier = Modifier.padding(vertical = 16.dp),
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     
                     TimePicker(
                         state = timePickerState,
                         colors = TimePickerDefaults.colors(
-                            clockDialColor = Color(0xFFF2F2F7),
-                            clockDialSelectedContentColor = Color.White,
-                            clockDialUnselectedContentColor = Color.Black,
+                            clockDialColor = MaterialTheme.colorScheme.surfaceVariant,
+                            clockDialSelectedContentColor = MaterialTheme.colorScheme.onPrimary,
+                            clockDialUnselectedContentColor = MaterialTheme.colorScheme.onSurface,
                             selectorColor = LinkBlue,
-                            containerColor = Color.White,
+                            containerColor = MaterialTheme.colorScheme.surface,
                             periodSelectorBorderColor = LinkBlue,
                             periodSelectorSelectedContainerColor = LinkBlue.copy(alpha = 0.2f),
                             periodSelectorSelectedContentColor = LinkBlue,
                             timeSelectorSelectedContainerColor = LinkBlue.copy(alpha = 0.2f),
                             timeSelectorSelectedContentColor = LinkBlue,
-                            timeSelectorUnselectedContainerColor = Color(0xFFF2F2F7),
-                            timeSelectorUnselectedContentColor = Color.Black
+                            timeSelectorUnselectedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            timeSelectorUnselectedContentColor = MaterialTheme.colorScheme.onSurface
                         )
                     )
                     
@@ -599,7 +612,7 @@ fun CreateReminderScreen(navController: NavController) {
                         horizontalArrangement = Arrangement.End
                     ) {
                         TextButton(onClick = { showCustomTimePicker = false }) {
-                            Text("取消", color = Color.Gray)
+                            Text("取消", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Button(
@@ -655,7 +668,7 @@ fun CreateReminderScreen(navController: NavController) {
             ModalBottomSheet(
                 onDismissRequest = { showDatePicker = false },
                 sheetState = sheetState,
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
@@ -666,7 +679,8 @@ fun CreateReminderScreen(navController: NavController) {
                                 text = "选择日期",
                                 modifier = Modifier.padding(start = 24.dp, end = 12.dp, top = 16.dp),
                                 fontSize = 16.sp,
-                                fontWeight = FontWeight.Medium
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         },
                         headline = {
@@ -681,18 +695,22 @@ fun CreateReminderScreen(navController: NavController) {
                                     text = dateText,
                                     fontSize = 32.sp,
                                     lineHeight = 40.sp,
-                                    fontWeight = FontWeight.Normal
+                                    fontWeight = FontWeight.Normal,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         },
                         showModeToggle = false,
                         colors = DatePickerDefaults.colors(
-                            containerColor = Color.White,
+                            containerColor = MaterialTheme.colorScheme.surface,
                             selectedDayContainerColor = LinkBlue,
                             todayDateBorderColor = LinkBlue,
                             todayContentColor = LinkBlue,
-                            weekdayContentColor = Color.Gray,
-                            selectedDayContentColor = Color.White
+                            weekdayContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            selectedDayContentColor = MaterialTheme.colorScheme.onPrimary,
+                            dayContentColor = MaterialTheme.colorScheme.onSurface,
+                            navigationContentColor = MaterialTheme.colorScheme.onSurface,
+                            dividerColor = MaterialTheme.colorScheme.outlineVariant
                         )
                     )
                     
@@ -704,7 +722,7 @@ fun CreateReminderScreen(navController: NavController) {
                         horizontalArrangement = Arrangement.End
                     ) {
                         TextButton(onClick = { showDatePicker = false }) {
-                            Text("取消", color = Color.Gray)
+                            Text("取消", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Button(
@@ -746,7 +764,7 @@ fun CreateReminderScreen(navController: NavController) {
             ModalBottomSheet(
                 onDismissRequest = { showTimePicker = false },
                 sheetState = sheetState,
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
             ) {
                 Column(
@@ -757,24 +775,25 @@ fun CreateReminderScreen(navController: NavController) {
                         text = "选择时间",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(vertical = 16.dp)
+                        modifier = Modifier.padding(vertical = 16.dp),
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     
                     TimePicker(
                         state = timePickerState,
                         colors = TimePickerDefaults.colors(
-                            clockDialColor = Color(0xFFF2F2F7),
-                            clockDialSelectedContentColor = Color.White,
-                            clockDialUnselectedContentColor = Color.Black,
+                            clockDialColor = MaterialTheme.colorScheme.surfaceVariant,
+                            clockDialSelectedContentColor = MaterialTheme.colorScheme.onPrimary,
+                            clockDialUnselectedContentColor = MaterialTheme.colorScheme.onSurface,
                             selectorColor = LinkBlue,
-                            containerColor = Color.White,
+                            containerColor = MaterialTheme.colorScheme.surface,
                             periodSelectorBorderColor = LinkBlue,
                             periodSelectorSelectedContainerColor = LinkBlue.copy(alpha = 0.2f),
                             periodSelectorSelectedContentColor = LinkBlue,
                             timeSelectorSelectedContainerColor = LinkBlue.copy(alpha = 0.2f),
                             timeSelectorSelectedContentColor = LinkBlue,
-                            timeSelectorUnselectedContainerColor = Color(0xFFF2F2F7),
-                            timeSelectorUnselectedContentColor = Color.Black
+                            timeSelectorUnselectedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            timeSelectorUnselectedContentColor = MaterialTheme.colorScheme.onSurface
                         )
                     )
                     
@@ -786,7 +805,7 @@ fun CreateReminderScreen(navController: NavController) {
                         horizontalArrangement = Arrangement.End
                     ) {
                         TextButton(onClick = { showTimePicker = false }) {
-                            Text("取消", color = Color.Gray)
+                            Text("取消", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Button(
@@ -843,7 +862,7 @@ fun ParticipantSelectionDialog(
                 .fillMaxWidth()
                 .height(500.dp),
             shape = RoundedCornerShape(16.dp),
-            color = Color.White
+            color = MaterialTheme.colorScheme.surface
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 // 标题
@@ -854,7 +873,7 @@ fun ParticipantSelectionDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = "选择提醒对象", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "选择提醒对象", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Text(
                         text = "已选 ${selected.size} 人", 
                         fontSize = 14.sp, 
@@ -862,7 +881,7 @@ fun ParticipantSelectionDialog(
                     )
                 }
                 
-                Divider(color = Color(0xFFEEEEEE))
+                Divider(color = MaterialTheme.colorScheme.outlineVariant)
                 
                 // 列表
                 LazyColumn(
@@ -884,10 +903,10 @@ fun ParticipantSelectionDialog(
                                 modifier = Modifier
                                     .size(24.dp)
                                     .clip(CircleShape)
-                                    .background(if (isSelected) LinkBlue else Color.White)
+                                    .background(if (isSelected) LinkBlue else MaterialTheme.colorScheme.surface)
                                     .border(
                                         width = 1.dp, 
-                                        color = if (isSelected) LinkBlue else Color.LightGray,
+                                        color = if (isSelected) LinkBlue else MaterialTheme.colorScheme.outlineVariant,
                                         shape = CircleShape
                                     ),
                                 contentAlignment = Alignment.Center
@@ -909,20 +928,20 @@ fun ParticipantSelectionDialog(
                                 modifier = Modifier
                                     .size(40.dp)
                                     .clip(CircleShape)
-                                    .background(Color(0xFFE0E0E0)),
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(text = user.name.first().toString())
+                                Text(text = user.name.first().toString(), color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             
                             Spacer(modifier = Modifier.width(12.dp))
                             
-                            Text(text = user.name, fontSize = 16.sp)
+                            Text(text = user.name, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }
                 
-                Divider(color = Color(0xFFEEEEEE))
+                Divider(color = MaterialTheme.colorScheme.outlineVariant)
                 
                 // 按钮
                 Row(
@@ -933,7 +952,7 @@ fun ParticipantSelectionDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("取消", color = Color.Gray)
+                        Text("取消", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(

@@ -14,7 +14,9 @@
     <application
         android:name=".ShareAlarmApplication"
         android:allowBackup="true"
+        android:icon="@drawable/ic_logo"
         android:label="@string/app_name"
+        android:roundIcon="@drawable/ic_logo"
         android:supportsRtl="true"
         android:theme="@style/Theme.ShareAlarm"
         tools:targetApi="31">
