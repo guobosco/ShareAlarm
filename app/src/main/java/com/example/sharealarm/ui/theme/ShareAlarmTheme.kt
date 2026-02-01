@@ -18,10 +18,10 @@ fun ShareAlarmTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    // 选择颜色方案，这里使用NASA蓝主题作为默认
+    // 选择颜色方案
     val colorScheme = when {
-        darkTheme -> NASABlueColorScheme
-        else -> NASABlueColorScheme // 统一使用NASA蓝主题，也可以根据需求切换到LightColorScheme
+        darkTheme -> BuddyBellDarkScheme
+        else -> BuddyBellLightScheme
     }
     
     // 应用主题

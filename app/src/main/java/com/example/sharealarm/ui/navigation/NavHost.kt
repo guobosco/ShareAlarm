@@ -5,13 +5,10 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.sharealarm.ui.screen.CreateOrganizationScreen
 import com.example.sharealarm.ui.screen.CreateReminderScreen
+import com.example.sharealarm.ui.screen.ContactsScreen
 import com.example.sharealarm.ui.screen.HomeScreen
-import com.example.sharealarm.ui.screen.JoinOrganizationScreen
-import com.example.sharealarm.ui.screen.ProfileScreen
-import com.example.sharealarm.ui.screen.SignInScreen
-import com.example.sharealarm.ui.screen.SignUpScreen
+import com.example.sharealarm.ui.screen.ReminderDetailScreen
 
 /**
  * 应用导航主机
@@ -26,35 +23,27 @@ fun AppNavHost() {
     // 导航主机，定义所有路由和对应的屏幕
     NavHost(
         navController = navController,
-        startDestination = Screen.SignIn.route
+        startDestination = Screen.Home.route // Mock模式直接进入主页
     ) {
-        // 登录屏幕路由
-        composable(Screen.SignIn.route) {
-            SignInScreen(navController = navController)
-        }
-        // 注册屏幕路由
-        composable(Screen.SignUp.route) {
-            SignUpScreen(navController = navController)
-        }
         // 主页屏幕路由
         composable(Screen.Home.route) {
             HomeScreen(navController = navController)
         }
-        // 我的页面屏幕路由
-        composable(Screen.Profile.route) {
-            ProfileScreen(navController = navController)
-        }
-        // 创建组织屏幕路由
-        composable(Screen.CreateOrganization.route) {
-            CreateOrganizationScreen(navController = navController)
-        }
-        // 加入组织屏幕路由
-        composable(Screen.JoinOrganization.route) {
-            JoinOrganizationScreen(navController = navController)
-        }
         // 创建提醒屏幕路由
         composable(Screen.CreateReminder.route) {
             CreateReminderScreen(navController = navController)
+        }
+        // 联系人列表（我的伙伴）屏幕路由
+        composable(Screen.Contacts.route) {
+            ContactsScreen(navController = navController)
+        }
+        // 提醒详情屏幕路由
+        composable(
+            route = Screen.ReminderDetail.route,
+            arguments = listOf(androidx.navigation.navArgument("reminderId") { type = androidx.navigation.NavType.StringType })
+        ) { backStackEntry ->
+            val reminderId = backStackEntry.arguments?.getString("reminderId")
+            ReminderDetailScreen(navController = navController, reminderId = reminderId)
         }
     }
 }
@@ -64,11 +53,10 @@ fun AppNavHost() {
  * 功能：定义应用中所有可用的屏幕路由，便于统一管理和使用
  */
 sealed class Screen(val route: String) {
-    object SignIn : Screen("sign_in")
-    object SignUp : Screen("sign_up")
     object Home : Screen("home")
-    object Profile : Screen("profile")
-    object CreateOrganization : Screen("create_organization")
-    object JoinOrganization : Screen("join_organization")
     object CreateReminder : Screen("create_reminder")
+    object Contacts : Screen("contacts")
+    object ReminderDetail : Screen("reminder_detail/{reminderId}") {
+        fun createRoute(reminderId: String) = "reminder_detail/$reminderId"
+    }
 }

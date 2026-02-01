@@ -4,7 +4,25 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
-// 颜色常量定义
+// 暖橙/铃铛黄 主题色
+val BellYellow = Color(0xFFFFB340) // 核心主色
+val BellYellowLight = Color(0xFFFFCC00) // 亮色
+val BellYellowDark = Color(0xFFE69500) // 深色
+val BellOrange = Color(0xFFFF9500) // 辅助橙色
+
+// iOS 风格灰度
+val IOSBackground = Color(0xFFF2F2F7) // 背景灰
+val IOSSurface = Color(0xFFFFFFFF) // 卡片白
+val IOSGrayText = Color(0xFF8E8E93) // 辅助文本灰
+val IOSLightGray = Color(0xFFE5E5EA) // 分割线/浅色背景
+val IOSBlack = Color(0xFF1A1A1A) // 主要文本黑
+
+// 语义色
+val SuccessGreen = Color(0xFF34C759)
+val ErrorRed = Color(0xFFFF3B30)
+val LinkBlue = Color(0xFF007AFF)
+
+// 旧颜色保留（按需清理）
 val Blue5 = Color(0xFFE6F0FF)
 val Blue10 = Color(0xFFCCE0FF)
 val Blue20 = Color(0xFF99C2FF)
@@ -59,65 +77,43 @@ val Black = Color(0xFF000000)
  * 应用颜色主题
  * 功能：定义应用的颜色方案，包括亮色和暗色主题
  */
-val NASABlueColorScheme = darkColorScheme(
-    primary = Blue80,
-    onPrimary = Blue20,
-    primaryContainer = Blue90,
-    onPrimaryContainer = Blue10,
-    secondary = Orange80,
-    onSecondary = Orange20,
-    secondaryContainer = Orange90,
-    onSecondaryContainer = Orange10,
-    tertiary = Green80,
-    onTertiary = Green20,
-    tertiaryContainer = Green90,
-    onTertiaryContainer = Green10,
-    error = Red80,
-    onError = Red20,
-    errorContainer = Red90,
-    onErrorContainer = Red10,
-    background = Grey90,
-    onBackground = Grey10,
-    surface = Grey80,
-    onSurface = Grey20,
-    surfaceVariant = BlueGrey80,
-    onSurfaceVariant = BlueGrey20,
-    outline = BlueGrey60,
-    outlineVariant = BlueGrey30,
-    scrim = Black,
-    inverseSurface = Grey20,
-    inverseOnSurface = Grey90,
-    inversePrimary = Blue40,
+// 默认使用亮色主题，符合极简日历风格
+val BuddyBellLightScheme = lightColorScheme(
+    primary = BellYellow,
+    onPrimary = White,
+    primaryContainer = BellYellowLight,
+    onPrimaryContainer = Black,
+    secondary = BellOrange,
+    onSecondary = White,
+    secondaryContainer = Orange10,
+    onSecondaryContainer = Orange90,
+    tertiary = LinkBlue,
+    onTertiary = White,
+    background = IOSBackground,
+    onBackground = IOSBlack,
+    surface = IOSSurface,
+    onSurface = IOSBlack,
+    surfaceVariant = IOSLightGray,
+    onSurfaceVariant = IOSGrayText,
+    error = ErrorRed,
+    onError = White,
+    outline = IOSLightGray,
+    outlineVariant = IOSGrayText
 )
 
-// 亮色主题（备用，根据需求可以启用）
-val LightColorScheme = lightColorScheme(
-    primary = Blue40,
-    onPrimary = White,
-    primaryContainer = Blue95,
-    onPrimaryContainer = Blue5,
-    secondary = Orange40,
-    onSecondary = White,
-    secondaryContainer = Orange95,
-    onSecondaryContainer = Orange5,
-    tertiary = Green40,
-    onTertiary = White,
-    tertiaryContainer = Green95,
-    onTertiaryContainer = Green5,
-    error = Red40,
-    onError = White,
-    errorContainer = Red95,
-    onErrorContainer = Red5,
-    background = Grey5,
-    onBackground = Grey90,
-    surface = White,
-    onSurface = Grey90,
-    surfaceVariant = BlueGrey95,
-    onSurfaceVariant = BlueGrey30,
-    outline = BlueGrey50,
-    outlineVariant = BlueGrey80,
-    scrim = Black,
-    inverseSurface = Grey90,
-    inverseOnSurface = Grey5,
-    inversePrimary = Blue80,
+// 暗色主题（暂不重点适配，保持基础可用性）
+val BuddyBellDarkScheme = darkColorScheme(
+    primary = BellYellowDark,
+    onPrimary = Black,
+    primaryContainer = BellYellowDark,
+    onPrimaryContainer = Black,
+    background = Color(0xFF000000),
+    onBackground = White,
+    surface = Color(0xFF1C1C1E),
+    onSurface = White
 )
+
+val NASABlueColorScheme = BuddyBellDarkScheme // 暂时映射，避免报错
+
+// 亮色主题（备用，根据需求可以启用）
+val LightColorScheme = BuddyBellLightScheme
