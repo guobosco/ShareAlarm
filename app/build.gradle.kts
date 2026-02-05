@@ -106,6 +106,9 @@ dependencies {
     
 
     
+    // Pinyin helper for Chinese sort
+    implementation("com.belerweb:pinyin4j:2.5.0")
+
     // Room dependencies
     implementation("androidx.room:room-runtime:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
@@ -117,6 +120,9 @@ dependencies {
     
     // Navigation dependencies with explicit version
     implementation("androidx.navigation:navigation-compose:2.8.0")
+
+    // ZXing for QR Code
+    implementation("com.google.zxing:core:3.5.3")
     
     // AlarmManager dependencies
     implementation("androidx.work:work-runtime-ktx:2.9.0")

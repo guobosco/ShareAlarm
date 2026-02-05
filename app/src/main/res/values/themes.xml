@@ -6,9 +6,13 @@
         <item name="android:fontFamily">sans-serif</item>
         
         <!-- Basic color attributes -->
-        <item name="android:colorPrimary">@color/nasa_blue</item>
-        <item name="android:colorPrimaryDark">@color/nasa_blue_dark</item>
-        <item name="android:colorAccent">@color/nasa_blue_light</item>
+        <item name="android:colorPrimary">@color/bell_yellow</item>
+        <item name="android:colorPrimaryDark">@color/white</item>
+        <item name="android:colorAccent">@color/bell_orange</item>
         <item name="android:colorBackground">@color/white</item>
+        
+        <!-- Status Bar -->
+        <item name="android:statusBarColor">@color/white</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
     </style>
 </resources>

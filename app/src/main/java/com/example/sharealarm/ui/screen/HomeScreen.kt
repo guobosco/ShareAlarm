@@ -1,6 +1,7 @@
 package com.example.sharealarm.ui.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -55,6 +57,10 @@ import kotlin.math.roundToInt
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.NightlightRound
+import com.example.sharealarm.ui.theme.ThemeSettings
+import androidx.compose.foundation.ExperimentalFoundationApi
 
 // 模拟数据模型 (UI 层)
 data class MockEvent(
@@ -65,16 +71,25 @@ data class MockEvent(
     val dateStr: String,
     val isExpired: Boolean = false,
     val isRead: Boolean = false,
-    val isMine: Boolean = false // 新增字段
+    val isMine: Boolean = false, // 新增字段
+    val isModified: Boolean = false // 新增字段
 )
 
 // 视图模型项
 sealed class TimelineItem {
-    data class Header(val date: String, val isExpired: Boolean = false) : TimelineItem()
-    data class Event(val event: MockEvent) : TimelineItem()
-    data class ExpiredHeader(val count: Int, val isExpanded: Boolean) : TimelineItem()
+    abstract val key: Any
+    data class Header(val date: String, val isExpired: Boolean = false) : TimelineItem() {
+        override val key = "header_${date}_$isExpired"
+    }
+    data class Event(val event: MockEvent) : TimelineItem() {
+        override val key = event.id
+    }
+    data class ExpiredHeader(val count: Int, val isExpanded: Boolean) : TimelineItem() {
+        override val key = "expired_header"
+    }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(navController: NavController) {
     // 观察模拟数据
@@ -143,7 +158,7 @@ fun HomeScreen(navController: NavController) {
                         }
                     }
                 ) {
-                    Text("去设置", color = LinkBlue)
+                    Text("去设置", color = MaterialTheme.colorScheme.primary)
                 }
             },
             dismissButton = {
@@ -175,7 +190,7 @@ fun HomeScreen(navController: NavController) {
                 TextButton(
                     onClick = { showInfoDialog = false }
                 ) {
-                    Text("知道了", color = BellYellow)
+                    Text("知道了", color = MaterialTheme.colorScheme.primary)
                 }
             },
             containerColor = Color.White
@@ -249,29 +264,30 @@ fun HomeScreen(navController: NavController) {
         items
     }
 
-    ShareAlarmTheme {
-        // 整体背景设为浅灰色，模拟卡片悬浮效果
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background) // iOS 风格背景灰
-        ) {
-            // 主体白色卡片，带大圆角
-            Surface(
+    // 整体背景设为浅灰色，模拟卡片悬浮效果
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background) // iOS 风格背景灰
+    ) {
+        // 主体白色卡片，带大圆角
+        Surface(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(top = 0.dp),
-                shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp),
+                shape = RectangleShape,
                 color = MaterialTheme.colorScheme.surface
             ) {
                 Scaffold(
-                    topBar = { HomeTopBar() },
+                    topBar = { HomeTopBar(navController) },
                     floatingActionButton = { HomeFloatingButtons(navController) },
                     containerColor = Color.Transparent
                 ) { paddingValues ->
                     if (allReminders.isEmpty()) {
                         // 空状态：咖啡插画
-                        EmptyStateView(paddingValues)
+                        EmptyStateView(paddingValues, onAddClick = {
+                            navController.navigate(Screen.CreateReminder.route)
+                        })
                     } else {
                         // 时间轴列表
                         LazyColumn(
@@ -281,30 +297,35 @@ fun HomeScreen(navController: NavController) {
                                 .padding(horizontal = 24.dp),
                             contentPadding = PaddingValues(bottom = 100.dp) // 底部留白给 FAB
                         ) {
-                            items(timelineItems) { item ->
-                                when (item) {
-                                    is TimelineItem.Header -> DateHeader(item.date, item.isExpired)
-                                    is TimelineItem.Event -> EventCard(
-                                        event = item.event, 
-                                        navController = navController,
-                                        onDelete = {
-                                            reminderToDelete = item.event
-                                            showDeleteDialog = true
-                                        },
-                                        onLongClick = {
-                                            reminderToDelete = item.event
-                                            showDeleteDialog = true
-                                        },
-                                        onShowInfo = { message ->
-                                            infoDialogMessage = message
-                                            showInfoDialog = true
-                                        }
-                                    )
-                                    is TimelineItem.ExpiredHeader -> ExpiredEventsBanner(
-                                        count = item.count,
-                                        isExpanded = item.isExpanded,
-                                        onToggle = { isExpiredExpanded = !isExpiredExpanded }
-                                    )
+                            items(
+                                items = timelineItems,
+                                key = { it.key }
+                            ) { item ->
+                                Box(modifier = Modifier.animateItemPlacement()) {
+                                    when (item) {
+                                        is TimelineItem.Header -> DateHeader(item.date, item.isExpired)
+                                        is TimelineItem.Event -> EventCard(
+                                            event = item.event, 
+                                            navController = navController,
+                                            onDelete = {
+                                                reminderToDelete = item.event
+                                                showDeleteDialog = true
+                                            },
+                                            onLongClick = {
+                                                reminderToDelete = item.event
+                                                showDeleteDialog = true
+                                            },
+                                            onShowInfo = { message ->
+                                                infoDialogMessage = message
+                                                showInfoDialog = true
+                                            }
+                                        )
+                                        is TimelineItem.ExpiredHeader -> ExpiredEventsBanner(
+                                            count = item.count,
+                                            isExpanded = item.isExpanded,
+                                            onToggle = { isExpiredExpanded = !isExpiredExpanded }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -312,9 +333,7 @@ fun HomeScreen(navController: NavController) {
                 }
             }
         }
-    }
 }
-
 // 辅助扩展函数：转换 Reminder 为 MockEvent (适配现有 UI)
 fun com.example.sharealarm.data.model.Reminder.toMockEvent(
     isExpired: Boolean = false,
@@ -343,7 +362,8 @@ fun com.example.sharealarm.data.model.Reminder.toMockEvent(
         dateStr = getFormattedDate(this.eventTime),
         isExpired = isExpired,
         isRead = this.isRead,
-        isMine = this.creator == currentUserName // 判断是否是自己的
+        isMine = this.creator == currentUserName, // 判断是否是自己的
+        isModified = this.updatedAt > this.createdAt + 1000 // 增加1秒缓冲
     )
 }
 
@@ -353,7 +373,7 @@ fun getFormattedDate(date: java.util.Date): String {
 }
 
 @Composable
-fun EmptyStateView(paddingValues: PaddingValues) {
+fun EmptyStateView(paddingValues: PaddingValues, onAddClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -375,37 +395,65 @@ fun EmptyStateView(paddingValues: PaddingValues) {
                 fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
                 fontWeight = FontWeight.Light
             )
+            Spacer(modifier = Modifier.height(24.dp))
+            OutlinedButton(onClick = onAddClick) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("新建提醒")
+            }
         }
     }
 }
 
 @Composable
-fun HomeTopBar() {
+fun HomeTopBar(navController: NavController) {
+    val themeSetting by ThemeSettings.isDarkTheme.collectAsState()
+    val isSystemDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val isDarkTheme = themeSetting ?: isSystemDark
+    
+    var showThemeDialog by remember { mutableStateOf(false) }
+
+    if (showThemeDialog) {
+        ThemeSelectionDialog(onDismiss = { showThemeDialog = false })
+    }
+
+    // 实时时间状态
+    var currentTimeStr by remember { mutableStateOf("") }
+    
+    // 启动定时器更新时间
+    LaunchedEffect(Unit) {
+        val formatter = java.text.SimpleDateFormat("yyyy/M/d HH:mm:ss", java.util.Locale.getDefault())
+        while (true) {
+            currentTimeStr = formatter.format(java.util.Date())
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 20.dp),
+                .padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 6.dp),
             verticalAlignment = Alignment.Bottom
         ) {
             // 标题文本组合
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     text = "飞铃",
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.ExtraLight,
-                    fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Default,
                     letterSpacing = 2.sp,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.alignByBaseline()
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "BuddyBell",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Thin,
+                    text = currentTimeStr,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Light,
                     fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.alignByBaseline()
                 )
             }
@@ -419,9 +467,9 @@ fun HomeTopBar() {
                 // 自定义 2x2 四点图标按钮
                 IconButton(
                     onClick = { menuExpanded = true },
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(48.dp) // 优化点击热区
                 ) {
-                    androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                    androidx.compose.foundation.Canvas(modifier = Modifier.size(24.dp)) { // 保持视觉大小不变
                         val dotSize = 4.dp.toPx() // 点的大小
                         val gap = 4.dp.toPx()     // 间距
                         val color = Color(0xFF8E8E93) // Icon color can stay fixed or use onSurfaceVariant, let's keep it fixed for now or use theme
@@ -465,12 +513,18 @@ fun HomeTopBar() {
                 ) {
                     DropdownMenuItem(
                         text = { Text("我的", color = MaterialTheme.colorScheme.onSurface) },
-                        onClick = { menuExpanded = false },
+                        onClick = { 
+                            menuExpanded = false 
+                            navController.navigate(Screen.UserInfo.route)
+                        },
                         leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                     )
                     DropdownMenuItem(
                         text = { Text("搜索", color = MaterialTheme.colorScheme.onSurface) },
-                        onClick = { menuExpanded = false },
+                        onClick = { 
+                            menuExpanded = false
+                            navController.navigate(Screen.Search.route)
+                        },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                     )
                     DropdownMenuItem(
@@ -480,8 +534,28 @@ fun HomeTopBar() {
                     )
                     DropdownMenuItem(
                         text = { Text("切换风格", color = MaterialTheme.colorScheme.onSurface) },
-                        onClick = { menuExpanded = false },
+                        onClick = { 
+                            menuExpanded = false
+                            showThemeDialog = true
+                        },
                         leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(if (isDarkTheme) "关闭深色模式" else "打开深色模式", color = MaterialTheme.colorScheme.onSurface) },
+                        onClick = { 
+                            // 无论当前是跟随系统还是手动设置，点击开关都意味着用户进行了一次明确的覆盖操作
+                            // 如果当前显示为深色 -> 用户想关 -> 设置为 false (Light)
+                            // 如果当前显示为浅色 -> 用户想开 -> 设置为 true (Dark)
+                            ThemeSettings.setDarkTheme(!isDarkTheme)
+                            menuExpanded = false 
+                        },
+                        leadingIcon = { 
+                            Icon(
+                                if (isDarkTheme) Icons.Default.WbSunny else Icons.Default.NightlightRound, 
+                                contentDescription = null, 
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            ) 
+                        }
                     )
                 }
             }
@@ -490,7 +564,7 @@ fun HomeTopBar() {
         // 细细的黑线 (分割线)
         Divider(
             color = MaterialTheme.colorScheme.outlineVariant,
-            thickness = 1.dp
+            thickness = 0.5.dp
         )
     }
 }
@@ -498,12 +572,12 @@ fun HomeTopBar() {
 @Composable
 fun ExpiredEventsBanner(count: Int, isExpanded: Boolean, onToggle: () -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Divider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 1.dp)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 12.dp)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                 .clickable { onToggle() }
+                .padding(vertical = 12.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -513,20 +587,19 @@ fun ExpiredEventsBanner(count: Int, isExpanded: Boolean, onToggle: () -> Unit) {
                 Text(
                     text = if (isExpanded) "收起过期事件" else "查看 $count 个过期事件",
                     fontSize = 14.sp,
-                    fontWeight = FontWeight.Light,
+                    fontWeight = FontWeight.Medium,
                     fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.primary
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(16.dp)
                 )
             }
         }
-        Divider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 1.dp)
     }
 }
 
@@ -539,7 +612,7 @@ fun DateHeader(date: String, isExpired: Boolean = false) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         // 竖线颜色区分
-        val indicatorColor = if (isExpired) Color.LightGray else BellYellow
+        val indicatorColor = if (isExpired) Color.LightGray else MaterialTheme.colorScheme.primary
         
         Box(
             modifier = Modifier
@@ -551,7 +624,7 @@ fun DateHeader(date: String, isExpired: Boolean = false) {
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = date,
-            fontSize = 24.sp,
+            fontSize = 17.sp,
             color = if (isExpired) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Light,
             fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif
@@ -718,8 +791,8 @@ fun EventCardContent(
             },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp), // Increased elevation for depth
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)) // Subtle border
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -743,8 +816,8 @@ fun EventCardContent(
                 
                 Text(
                     text = event.title,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Normal,
+                    fontSize = 18.sp, // Slightly larger
+                    fontWeight = FontWeight.SemiBold, // Bolder for hierarchy
                     fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
                     color = if (event.isExpired) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
@@ -752,14 +825,14 @@ fun EventCardContent(
                     modifier = Modifier.weight(1f) // 占据剩余空间
                 )
                 
-                // 未读标记 (10dp 红点)
+                // 未读标记 (10dp 红点/黄点)
                 if (!event.isRead) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Box(
                         modifier = Modifier
                             .size(10.dp) // 调整为 10dp
                             .clip(CircleShape)
-                            .background(ErrorRed)
+                            .background(if (event.isModified) Color(0xFFFFD700) else ErrorRed) // 修改为黄色，新增为红色
                     )
                 }
             }
@@ -811,10 +884,21 @@ fun HomeFloatingButtons(navController: NavController) {
             .padding(bottom = 16.dp, end = 8.dp) // 调整位置
     ) {
         // 主按钮：添加提醒 (右下角)
+        // 防抖动状态
+        var lastClickTime by remember { mutableStateOf(0L) }
+
         FloatingActionButton(
-            onClick = { navController.navigate(Screen.CreateReminder.route) },
-            containerColor = BellYellow,
-            contentColor = Color.White,
+            onClick = {
+                val now = System.currentTimeMillis()
+                if (now - lastClickTime > 800) { // 800ms 防抖
+                    lastClickTime = now
+                    navController.navigate(Screen.CreateReminder.route) {
+                        launchSingleTop = true
+                    }
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
             shape = CircleShape,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -828,16 +912,62 @@ fun HomeFloatingButtons(navController: NavController) {
         // 我们把次按钮放在主按钮左边
         SmallFloatingActionButton(
             onClick = { navController.navigate(Screen.Contacts.route) },
-            containerColor = Color(0xFFF2F2F7), // 低对比度
-            contentColor = Color(0xFF8E8E93),
+            containerColor = MaterialTheme.colorScheme.surfaceVariant, // 使用主题色
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             shape = CircleShape,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = 80.dp, bottom = 8.dp) // 放在主按钮左侧
         ) {
-            Icon(Icons.Default.Group, contentDescription = "Contacts")
+            Icon(Icons.Default.People, contentDescription = "Contacts")
         }
     }
+}
+
+@Composable
+fun ThemeSelectionDialog(onDismiss: () -> Unit) {
+    val currentTheme by ThemeSettings.themeColor.collectAsState()
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("选择主题颜色") },
+        text = {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                ThemeColorItem(AppThemeColor.Yellow, BellYellow, currentTheme)
+                ThemeColorItem(AppThemeColor.Blue, ThemeBlue, currentTheme)
+                ThemeColorItem(AppThemeColor.Green, ThemeGreen, currentTheme)
+                ThemeColorItem(AppThemeColor.Purple, ThemePurple, currentTheme)
+                ThemeColorItem(AppThemeColor.Orange, ThemeOrange, currentTheme)
+                ThemeColorItem(AppThemeColor.Pink, ThemePink, currentTheme)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("关闭", color = MaterialTheme.colorScheme.primary)
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.surface,
+        titleContentColor = MaterialTheme.colorScheme.onSurface,
+        textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+}
+
+@Composable
+fun ThemeColorItem(theme: AppThemeColor, color: Color, currentTheme: AppThemeColor) {
+    val isSelected = theme == currentTheme
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .background(color)
+            .clickable { ThemeSettings.setThemeColor(theme) }
+            .then(
+                if (isSelected) Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape) else Modifier
+            )
+    )
 }
 
 @Preview(showBackground = true)

@@ -28,6 +28,10 @@ data class Reminder(
     val participants: List<String> = emptyList(),
     val creator: String = "",
     val isRead: Boolean = false, // 是否已读
+    val isCancelled: Boolean = false, // 是否已取消
+    val comments: List<Comment> = emptyList(), // 评论列表
+    val bubbles: List<String> = emptyList(), // 冒泡用户ID列表
+    val viewedBy: List<String> = emptyList(), // 已查看用户ID列表
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )

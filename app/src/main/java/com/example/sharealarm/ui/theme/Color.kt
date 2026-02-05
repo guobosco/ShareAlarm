@@ -10,6 +10,25 @@ val BellYellowLight = Color(0xFFFFCC00) // 亮色
 val BellYellowDark = Color(0xFFE69500) // 深色
 val BellOrange = Color(0xFFFF9500) // 辅助橙色
 
+// 蓝色主题 (默认主色 #3970FF)
+val ThemeBlue = Color(0xFF3970FF)
+val ThemeBlueLight = Color(0xFF4E51BF)
+val ThemeBlueDark = Color(0xFF6352CA)
+
+// 绿色主题 (新 #00966B)
+val ThemeGreen = Color(0xFF00966B)
+val ThemeGreenLight = Color(0xFF00C853)
+val ThemeGreenDark = Color(0xFF00695C)
+
+// 紫色主题
+val ThemePurple = Color(0xFF6A1B9A)
+val ThemePurpleLight = Color(0xFF8E24AA)
+val ThemePurpleDark = Color(0xFF4A148C)
+
+// 新增颜色
+val ThemeOrange = Color(0xFFFF7530)
+val ThemePink = Color(0xFFFF8CA4)
+
 // iOS 风格灰度
 val IOSBackground = Color(0xFFF2F2F7) // 背景灰
 val IOSSurface = Color(0xFFFFFFFF) // 卡片白

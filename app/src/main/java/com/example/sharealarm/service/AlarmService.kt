@@ -21,8 +21,8 @@ import java.io.IOException
 class AlarmService : Service() {
     // 日志标签
     private val TAG = "AlarmService"
-    // 通知渠道ID
-    private val CHANNEL_ID = "alarm_channel"
+    // 通知渠道ID - 使用新ID以确保配置更新
+    private val CHANNEL_ID = "alarm_channel_urgent"
     // 通知ID
     private val NOTIFICATION_ID = 1
     // 媒体播放器
@@ -118,12 +118,17 @@ class AlarmService : Service() {
      * 显示闹钟通知
      */
     private fun showAlarmNotification() {
-        // 点击通知后要启动的活动
-        val intent = Intent(this, com.example.sharealarm.ui.MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        // 点击通知后要启动的活动 - 使用 AlarmActivity
+        val intent = Intent(this, com.example.sharealarm.ui.AlarmActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION
             putExtra("reminderId", reminderId)
         }
-        val pendingIntent: PendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+        val pendingIntent: PendingIntent = PendingIntent.getActivity(
+            this, 
+            0, 
+            intent, 
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
         
         // 停止闹钟的意图
         val stopIntent = Intent(this, AlarmService::class.java).apply {
@@ -136,16 +141,30 @@ class AlarmService : Service() {
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
             .setContentTitle(getString(R.string.alarm_title))
             .setContentText(getString(R.string.alarm_ringing))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_MAX) // 最高优先级
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(pendingIntent)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "关闭", stopPendingIntent)
-            .setAutoCancel(true)
-            .setFullScreenIntent(pendingIntent, true) // 全屏通知
+            .setAutoCancel(false) // 点击不自动消失，由Activity处理
+            .setOngoing(true) // 持续显示
+            .setFullScreenIntent(pendingIntent, true) // 关键：全屏通知
             .build()
         
         // 显示通知
         startForeground(NOTIFICATION_ID, notification)
-        Log.d(TAG, "Notification shown")
+        Log.d(TAG, "Notification shown with FullScreenIntent")
+
+        // 尝试直接启动 Activity
+        // 注意：Android 10 (API 29) 及以上限制了后台启动 Activity
+        // 但如果应用具有 SYSTEM_ALERT_WINDOW 权限，或者是闹钟触发，某些系统允许启动
+        // 这里的 FullScreenIntent 是主要机制，startActivity 是补充尝试
+        try {
+            startActivity(intent)
+            Log.d(TAG, "Attempted to start AlarmActivity directly")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start AlarmActivity directly: ${e.message}")
+        }
     }
     
     /**

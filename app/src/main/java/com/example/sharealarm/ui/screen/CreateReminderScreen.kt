@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import com.example.sharealarm.data.local.MockDataStore
+import com.example.sharealarm.data.model.Group
 import com.example.sharealarm.data.model.User
 import com.example.sharealarm.ui.theme.*
 import java.text.SimpleDateFormat
@@ -76,22 +77,14 @@ fun ProvideChineseLocale(content: @Composable () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateReminderScreen(navController: NavController) {
+fun CreateReminderScreen(navController: NavController, reminderId: String? = null) {
     val context = LocalContext.current
     val currentUser by MockDataStore.currentUser.collectAsState()
     
     // 表单状态
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    
-    // 焦点控制
-    val focusRequester = remember { FocusRequester() }
-    
-    // 自动聚焦
-    LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
-    }
-    
+
     // 时间处理
     val calendar = Calendar.getInstance()
     calendar.add(Calendar.MINUTE, 15) // 默认 +15分钟
@@ -118,32 +111,104 @@ fun CreateReminderScreen(navController: NavController) {
     var showCustomTimePicker by remember { mutableStateOf(false) }
     var tempCustomDate by remember { mutableStateOf(Date()) }
 
+    // 状态：提交中（防抖与防重复）
+    var isSubmitting by remember { mutableStateOf(false) }
+    // 状态：编辑确认弹窗
+    var showEditConfirmDialog by remember { mutableStateOf(false) }
+    
+    // 焦点控制
+    val focusRequester = remember { FocusRequester() }
+    
+    // 自动聚焦 (仅在新建时)
+    LaunchedEffect(Unit) {
+        if (reminderId == null) {
+            try {
+                kotlinx.coroutines.delay(100) // 缩短延迟
+                focusRequester.requestFocus()
+            } catch (e: Exception) {
+                // 忽略焦点请求异常
+            }
+        }
+    }
+    
+    // 加载已有数据
+    LaunchedEffect(reminderId) {
+        if (reminderId != null) {
+            val reminder = MockDataStore.getReminderById(reminderId)
+            if (reminder != null) {
+                title = reminder.title
+                description = reminder.description
+                eventDate = reminder.eventTime
+                
+                // 恢复参与者
+                val participants = reminder.participants.mapNotNull { MockDataStore.getUserById(it) }
+                selectedParticipants = participants.filter { it.id != currentUser.id } // 排除自己
+                
+                // 恢复提醒时间
+                alertOffsets.clear()
+                val offsets = reminder.alertTimes.map { 
+                    ((reminder.eventTime.time - it.time) / (1000 * 60)).toInt()
+                }
+                alertOffsets.addAll(offsets)
+            }
+        }
+    }
+
+    // 执行保存
+    fun performSave() {
+        isSubmitting = true
+
+        if (reminderId != null) {
+             MockDataStore.updateReminder(
+                id = reminderId,
+                title = title,
+                time = eventDate,
+                note = description,
+                participantIds = selectedParticipants.map { it.id } + currentUser.id,
+                alertOffsets = alertOffsets.toList()
+            )
+             // 重新设置闹钟
+             val reminder = MockDataStore.getReminderById(reminderId)
+             if (reminder != null) {
+                 AlarmScheduler.scheduleMultipleAlarms(context, reminder.id, reminder.alertTimes)
+             }
+        } else {
+            // 创建提醒
+            val newReminder = MockDataStore.addReminder(
+                title = title,
+                time = eventDate,
+                note = description,
+                participantIds = selectedParticipants.map { it.id } + currentUser.id,
+                alertOffsets = alertOffsets.toList()
+            )
+            
+            // 设置系统闹钟
+            AlarmScheduler.scheduleMultipleAlarms(context, newReminder.id, newReminder.alertTimes)
+        }
+        
+        navController.popBackStack()
+    }
+
     // 提交处理
     fun handleSubmit() {
+        if (isSubmitting) return
+        
         if (title.isBlank()) {
             errorMessage = "请输入提醒内容"
             return
         }
         
-        // 创建提醒
-        val newReminder = MockDataStore.addReminder(
-            title = title,
-            time = eventDate,
-            note = description,
-            participantIds = selectedParticipants.map { it.id } + currentUser.id,
-            alertOffsets = alertOffsets.toList()
-        )
-        
-        // 设置系统闹钟
-        AlarmScheduler.scheduleMultipleAlarms(context, newReminder.id, newReminder.alertTimes)
-        
-        navController.popBackStack()
+        if (reminderId != null) {
+            showEditConfirmDialog = true
+        } else {
+            performSave()
+        }
     }
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("添加提醒", fontWeight = FontWeight.SemiBold) },
+                title = { Text("添加提醒", fontWeight = FontWeight.Normal, fontSize = 17.sp) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -152,11 +217,20 @@ fun CreateReminderScreen(navController: NavController) {
                 actions = {
                     Button(
                         onClick = { handleSubmit() },
-                        colors = ButtonDefaults.buttonColors(containerColor = LinkBlue),
+                        enabled = !isSubmitting,
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         contentPadding = PaddingValues(horizontal = 16.dp),
                         modifier = Modifier.padding(end = 8.dp)
                     ) {
-                        Text("完成")
+                        if (isSubmitting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("完成")
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
@@ -190,7 +264,7 @@ fun CreateReminderScreen(navController: NavController) {
                             unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                             focusedContainerColor = MaterialTheme.colorScheme.surface,
                             unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                            focusedBorderColor = LinkBlue,
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
                             focusedTextColor = MaterialTheme.colorScheme.onSurface,
                             unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                         ),
@@ -211,7 +285,7 @@ fun CreateReminderScreen(navController: NavController) {
 
             // 2. 日期时间卡片
             item {
-                FormSection(title = "日期与时间 *") {
+                FormSection(title = "事件时间 *") {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -280,7 +354,7 @@ fun CreateReminderScreen(navController: NavController) {
             // 3. 提前提醒
             item {
                 FormSection(
-                    title = "飞铃时间",
+                    title = "响铃提醒",
                     action = {
                         Box {
                             IconButton(
@@ -290,7 +364,7 @@ fun CreateReminderScreen(navController: NavController) {
                                 Icon(
                                     imageVector = Icons.Default.Add,
                                     contentDescription = "添加提醒时间",
-                                    tint = LinkBlue
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                             }
                             
@@ -302,8 +376,18 @@ fun CreateReminderScreen(navController: NavController) {
                                     .background(MaterialTheme.colorScheme.surface)
                                     .width(200.dp)
                             ) {
-                                val options = listOf(30, 60, 120)
-                                val optionLabels = mapOf(30 to "提前 30 分钟", 60 to "提前 1 小时", 120 to "提前 2 小时")
+                                // 08:00 是一个特殊逻辑，这里我们暂时用 -1 表示，后续逻辑处理
+                                // 但为了简单起见，我们可以计算距离最近的当日8:00的偏移量，但这会随eventDate变化而变化
+                                // 所以更好的方式是把“添加”逻辑拆分开：
+                                // 这里我们只展示固定的分钟数偏移量选项
+                                
+                                val options = listOf(5, 30, 60, 120)
+                                val optionLabels = mapOf(
+                                    5 to "提前 5 分钟",
+                                    30 to "提前 30 分钟", 
+                                    60 to "提前 1 小时", 
+                                    120 to "提前 2 小时"
+                                )
                                 
                                 options.forEach { minutes ->
                                     if (!alertOffsets.contains(minutes)) {
@@ -316,6 +400,32 @@ fun CreateReminderScreen(navController: NavController) {
                                             }
                                         )
                                     }
+                                }
+                                
+                                // 当日 08:00 选项
+                                // 计算当日 08:00 距离 eventDate 的偏移量
+                                val today8am = Calendar.getInstance().apply {
+                                    time = eventDate
+                                    set(Calendar.HOUR_OF_DAY, 8)
+                                    set(Calendar.MINUTE, 0)
+                                    set(Calendar.SECOND, 0)
+                                    set(Calendar.MILLISECOND, 0)
+                                }
+                                
+                                // 如果事件时间本身就是8点，或者今天已经过了8点且事件在今天，这个选项可能需要调整逻辑
+                                // 这里简化为：如果计算出的偏移量 > 0 (即8点在事件时间之前)，则显示
+                                val diffMillis8am = eventDate.time - today8am.timeInMillis
+                                val offset8am = (diffMillis8am / (1000 * 60)).toInt()
+                                
+                                if (offset8am > 0 && !alertOffsets.contains(offset8am)) {
+                                     DropdownMenuItem(
+                                        text = { Text("当日 08:00", color = MaterialTheme.colorScheme.onSurface) },
+                                        onClick = { 
+                                            alertOffsets.add(offset8am)
+                                            alertOffsets.sort()
+                                            showAlertMenu = false
+                                        }
+                                    )
                                 }
                                 
                                 Divider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -339,36 +449,118 @@ fun CreateReminderScreen(navController: NavController) {
                         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Column {
+                            // 引入一个临时状态来记录当前正在编辑的索引，-1表示没有编辑
+                            var editingIndex by remember { mutableStateOf(-1) }
+                            // 编辑菜单的显示位置需要更精细的控制，或者简单点，直接在点击项下方显示Dropdown
+                            // 这里我们利用Box和DropdownMenu来实现点击项弹出菜单
+                            
                             alertOffsets.forEachIndexed { index, minutes ->
                                 if (index > 0) Divider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp)
                                 
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp)
-                                ) {
-                                    // 统一显示为绝对时间格式
-                                    val alertTime = Date(eventDate.time - minutes * 60 * 1000L)
-                                    val dateFormat = SimpleDateFormat("MM月dd日 HH:mm", Locale.CHINA)
-                                    val alertText = dateFormat.format(alertTime)
-                                    Text(
-                                        text = alertText,
-                                        fontSize = 16.sp,
-                                        modifier = Modifier.weight(1f),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    
-                                    // 删除按钮
-                                    IconButton(
-                                        onClick = { alertOffsets.remove(minutes) },
-                                        modifier = Modifier.size(20.dp)
+                                Box {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { editingIndex = index } // 点击进入编辑模式（弹出菜单）
+                                            .padding(16.dp)
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Close,
-                                            contentDescription = "删除",
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(16.dp)
+                                        // 统一显示为绝对时间格式
+                                        val alertTime = Date(eventDate.time - minutes * 60 * 1000L)
+                                        val dateFormat = SimpleDateFormat("MM月dd日 HH:mm", Locale.CHINA)
+                                        val alertText = dateFormat.format(alertTime)
+                                        Text(
+                                            text = alertText,
+                                            fontSize = 16.sp,
+                                            modifier = Modifier.weight(1f),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        
+                                        // 删除按钮
+                                        IconButton(
+                                            onClick = { alertOffsets.remove(minutes) },
+                                            modifier = Modifier.size(20.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "删除",
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+
+                                    // 编辑用的下拉菜单
+                                    DropdownMenu(
+                                        expanded = editingIndex == index,
+                                        onDismissRequest = { editingIndex = -1 },
+                                        modifier = Modifier
+                                            .background(MaterialTheme.colorScheme.surface)
+                                            .width(200.dp)
+                                    ) {
+                                        val options = listOf(5, 15, 30, 60, 120)
+                                        val optionLabels = mapOf(
+                                            5 to "提前 5 分钟",
+                                            15 to "提前 15 分钟",
+                                            30 to "提前 30 分钟", 
+                                            60 to "提前 1 小时", 
+                                            120 to "提前 2 小时"
+                                        )
+                                        
+                                        options.forEach { optMinutes ->
+                                            DropdownMenuItem(
+                                                text = { Text(optionLabels[optMinutes]!!, color = MaterialTheme.colorScheme.onSurface) },
+                                                onClick = { 
+                                                    // 更新偏移量
+                                                    alertOffsets[index] = optMinutes
+                                                    alertOffsets.sort() // 重新排序
+                                                    editingIndex = -1
+                                                },
+                                                trailingIcon = if (optMinutes == minutes) {
+                                                    { Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                                                } else null
+                                            )
+                                        }
+                                        
+                                        // 当日 08:00 选项
+                                        val today8am = Calendar.getInstance().apply {
+                                            time = eventDate
+                                            set(Calendar.HOUR_OF_DAY, 8)
+                                            set(Calendar.MINUTE, 0)
+                                            set(Calendar.SECOND, 0)
+                                            set(Calendar.MILLISECOND, 0)
+                                        }
+                                        val diffMillis8am = eventDate.time - today8am.timeInMillis
+                                        val offset8am = (diffMillis8am / (1000 * 60)).toInt()
+                                        
+                                        if (offset8am > 0) {
+                                             DropdownMenuItem(
+                                                text = { Text("当日 08:00", color = MaterialTheme.colorScheme.onSurface) },
+                                                onClick = { 
+                                                    alertOffsets[index] = offset8am
+                                                    alertOffsets.sort()
+                                                    editingIndex = -1
+                                                },
+                                                trailingIcon = if (offset8am == minutes) {
+                                                    { Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                                                } else null
+                                            )
+                                        }
+                                        
+                                        Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                                        DropdownMenuItem(
+                                            text = { Text("自定义时间...", color = MaterialTheme.colorScheme.onSurface) },
+                                            onClick = { 
+                                                editingIndex = -1
+                                                // 这里的逻辑稍微复杂，因为我们要“修改”当前的条目
+                                                // 但实际上自定义时间弹窗是添加逻辑。
+                                                // 为了复用，我们可以先移除当前项，然后走添加流程？
+                                                // 或者引入一个“正在编辑的offset”状态？
+                                                // 简单起见：移除当前项，打开自定义时间选择器
+                                                alertOffsets.removeAt(index)
+                                                tempCustomDate = Date(eventDate.time - minutes * 60 * 1000L) // 默认选中当前这个时间
+                                                showCustomDatePicker = true
+                                            }
                                         )
                                     }
                                 }
@@ -387,6 +579,26 @@ fun CreateReminderScreen(navController: NavController) {
                 }
             }
 
+            // 提醒对象
+            item {
+                FormSection(title = "提醒对象") {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showParticipantDialog = true },
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Text(
+                            text = if (selectedParticipants.isEmpty()) "选择提醒对象" else "已选 ${selectedParticipants.size} 人",
+                            modifier = Modifier.padding(16.dp),
+                            color = if (selectedParticipants.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+
             // 4. 备注
             item {
                 FormSection(title = "备注 (选填)") {
@@ -401,7 +613,7 @@ fun CreateReminderScreen(navController: NavController) {
                             unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                             focusedContainerColor = MaterialTheme.colorScheme.surface,
                             unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                            focusedBorderColor = LinkBlue,
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
                             focusedTextColor = MaterialTheme.colorScheme.onSurface,
                             unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                         ),
@@ -427,30 +639,35 @@ fun CreateReminderScreen(navController: NavController) {
                     }
                 }
             }
-
-            // 6. 提醒对象
-            item {
-                FormSection(title = "提醒对象") {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showParticipantDialog = true },
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surface,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                    ) {
-                        Text(
-                            text = if (selectedParticipants.isEmpty()) "选择提醒对象" else "已选 ${selectedParticipants.size} 人",
-                            modifier = Modifier.padding(16.dp),
-                            color = if (selectedParticipants.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-            }
             
             // 底部留白
             item { Spacer(modifier = Modifier.height(40.dp)) }
         }
+    }
+
+    // 编辑确认弹窗
+    if (showEditConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showEditConfirmDialog = false },
+            title = { Text("确认保存") },
+            text = { Text("修改后保存，所有人的提醒都会改变，是否继续？") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showEditConfirmDialog = false
+                        performSave()
+                    }
+                ) {
+                    Text("确定", color = MaterialTheme.colorScheme.primary)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditConfirmDialog = false }) {
+                    Text("取消", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     }
 
     // 参与者选择弹窗
@@ -512,9 +729,9 @@ fun CreateReminderScreen(navController: NavController) {
                         showModeToggle = false,
                         colors = DatePickerDefaults.colors(
                             containerColor = MaterialTheme.colorScheme.surface,
-                            selectedDayContainerColor = LinkBlue,
-                            todayDateBorderColor = LinkBlue,
-                            todayContentColor = LinkBlue,
+                            selectedDayContainerColor = MaterialTheme.colorScheme.primary,
+                            todayDateBorderColor = MaterialTheme.colorScheme.primary,
+                            todayContentColor = MaterialTheme.colorScheme.primary,
                             weekdayContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             selectedDayContentColor = MaterialTheme.colorScheme.onPrimary,
                             dayContentColor = MaterialTheme.colorScheme.onSurface,
@@ -547,7 +764,7 @@ fun CreateReminderScreen(navController: NavController) {
                                 showCustomDatePicker = false
                                 showCustomTimePicker = true // 下一步：选择时间
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = LinkBlue)
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
                             Text("下一步")
                         }
@@ -593,13 +810,13 @@ fun CreateReminderScreen(navController: NavController) {
                             clockDialColor = MaterialTheme.colorScheme.surfaceVariant,
                             clockDialSelectedContentColor = MaterialTheme.colorScheme.onPrimary,
                             clockDialUnselectedContentColor = MaterialTheme.colorScheme.onSurface,
-                            selectorColor = LinkBlue,
+                            selectorColor = MaterialTheme.colorScheme.primary,
                             containerColor = MaterialTheme.colorScheme.surface,
-                            periodSelectorBorderColor = LinkBlue,
-                            periodSelectorSelectedContainerColor = LinkBlue.copy(alpha = 0.2f),
-                            periodSelectorSelectedContentColor = LinkBlue,
-                            timeSelectorSelectedContainerColor = LinkBlue.copy(alpha = 0.2f),
-                            timeSelectorSelectedContentColor = LinkBlue,
+                            periodSelectorBorderColor = MaterialTheme.colorScheme.primary,
+                            periodSelectorSelectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                            periodSelectorSelectedContentColor = MaterialTheme.colorScheme.primary,
+                            timeSelectorSelectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                            timeSelectorSelectedContentColor = MaterialTheme.colorScheme.primary,
                             timeSelectorUnselectedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                             timeSelectorUnselectedContentColor = MaterialTheme.colorScheme.onSurface
                         )
@@ -644,7 +861,7 @@ fun CreateReminderScreen(navController: NavController) {
                                 
                                 showCustomTimePicker = false
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = LinkBlue)
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
                             Text("确定")
                         }
@@ -703,9 +920,9 @@ fun CreateReminderScreen(navController: NavController) {
                         showModeToggle = false,
                         colors = DatePickerDefaults.colors(
                             containerColor = MaterialTheme.colorScheme.surface,
-                            selectedDayContainerColor = LinkBlue,
-                            todayDateBorderColor = LinkBlue,
-                            todayContentColor = LinkBlue,
+                            selectedDayContainerColor = MaterialTheme.colorScheme.primary,
+                            todayDateBorderColor = MaterialTheme.colorScheme.primary,
+                            todayContentColor = MaterialTheme.colorScheme.primary,
                             weekdayContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             selectedDayContentColor = MaterialTheme.colorScheme.onPrimary,
                             dayContentColor = MaterialTheme.colorScheme.onSurface,
@@ -739,7 +956,7 @@ fun CreateReminderScreen(navController: NavController) {
                                 showDatePicker = false
                                 showTimePicker = true // 自动弹出时间选择器
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = LinkBlue)
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
                             Text("确定")
                         }
@@ -785,13 +1002,13 @@ fun CreateReminderScreen(navController: NavController) {
                             clockDialColor = MaterialTheme.colorScheme.surfaceVariant,
                             clockDialSelectedContentColor = MaterialTheme.colorScheme.onPrimary,
                             clockDialUnselectedContentColor = MaterialTheme.colorScheme.onSurface,
-                            selectorColor = LinkBlue,
+                            selectorColor = MaterialTheme.colorScheme.primary,
                             containerColor = MaterialTheme.colorScheme.surface,
-                            periodSelectorBorderColor = LinkBlue,
-                            periodSelectorSelectedContainerColor = LinkBlue.copy(alpha = 0.2f),
-                            periodSelectorSelectedContentColor = LinkBlue,
-                            timeSelectorSelectedContainerColor = LinkBlue.copy(alpha = 0.2f),
-                            timeSelectorSelectedContentColor = LinkBlue,
+                            periodSelectorBorderColor = MaterialTheme.colorScheme.primary,
+                            periodSelectorSelectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                            periodSelectorSelectedContentColor = MaterialTheme.colorScheme.primary,
+                            timeSelectorSelectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                            timeSelectorSelectedContentColor = MaterialTheme.colorScheme.primary,
                             timeSelectorUnselectedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                             timeSelectorUnselectedContentColor = MaterialTheme.colorScheme.onSurface
                         )
@@ -816,7 +1033,7 @@ fun CreateReminderScreen(navController: NavController) {
                                 eventDate = newCal.time
                                 showTimePicker = false
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = LinkBlue)
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
                             Text("确定")
                         }
@@ -854,13 +1071,33 @@ fun ParticipantSelectionDialog(
     onConfirm: (List<User>) -> Unit
 ) {
     val contacts by MockDataStore.contacts.collectAsState()
+    val groups by MockDataStore.groups.collectAsState()
+    val tags by MockDataStore.tags.collectAsState()
+    
     val selected = remember { mutableStateListOf<User>().apply { addAll(initialSelection) } }
+    
+    // 筛选模式
+    var filterMode by remember { mutableStateOf(0) } // 0: 全部, 1: 标签, 2: 群组
+    var selectedTag by remember { mutableStateOf<String?>(null) }
+    var selectedGroup by remember { mutableStateOf<Group?>(null) }
+    
+    // 计算当前显示的联系人列表
+    val displayedContacts = remember(contacts, filterMode, selectedTag, selectedGroup) {
+        when (filterMode) {
+            1 -> if (selectedTag != null) contacts.filter { it.tags.contains(selectedTag) } else emptyList()
+            2 -> if (selectedGroup != null) contacts.filter { selectedGroup!!.memberIds.contains(it.id) } else emptyList()
+            else -> contacts
+        }
+    }
+    
+    // 全选/全不选逻辑
+    val isAllSelected = displayedContacts.isNotEmpty() && displayedContacts.all { contact -> selected.any { it.id == contact.id } }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(500.dp),
+                .height(600.dp),
             shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.surface
         ) {
@@ -877,66 +1114,185 @@ fun ParticipantSelectionDialog(
                     Text(
                         text = "已选 ${selected.size} 人", 
                         fontSize = 14.sp, 
-                        color = LinkBlue
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
                 
                 Divider(color = MaterialTheme.colorScheme.outlineVariant)
                 
+                // 筛选栏
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // 顶部 Tab
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        listOf("全部", "标签", "群组").forEachIndexed { index, title ->
+                            Column(
+                                modifier = Modifier.clickable { 
+                                    filterMode = index 
+                                    // 重置子选项
+                                    if (index == 1 && tags.isNotEmpty()) selectedTag = tags.first()
+                                    if (index == 2 && groups.isNotEmpty()) selectedGroup = groups.first()
+                                },
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = title,
+                                    color = if (filterMode == index) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight = if (filterMode == index) FontWeight.Bold else FontWeight.Normal
+                                )
+                                if (filterMode == index) {
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(top = 4.dp)
+                                            .size(width = 20.dp, height = 2.dp)
+                                            .background(MaterialTheme.colorScheme.primary, CircleShape)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 子筛选器 (标签/群组 Chip)
+                    if (filterMode == 1) {
+                        androidx.compose.foundation.lazy.LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(tags) { tag: String ->
+                                FilterChip(
+                                    selected = selectedTag == tag,
+                                    onClick = { selectedTag = tag },
+                                    label = { Text(text = tag) }
+                                )
+                            }
+                        }
+                    } else if (filterMode == 2) {
+                        androidx.compose.foundation.lazy.LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(groups) { group: Group ->
+                                FilterChip(
+                                    selected = selectedGroup?.id == group.id,
+                                    onClick = { selectedGroup = group },
+                                    label = { Text(text = group.name) }
+                                )
+                            }
+                        }
+                    }
+                    
+                    // 全选栏
+                    if (filterMode != 0 || displayedContacts.isNotEmpty()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TextButton(
+                                onClick = {
+                                    if (isAllSelected) {
+                                        // 全不选 (只移除当前显示的)
+                                        displayedContacts.forEach { contact ->
+                                            selected.removeAll { it.id == contact.id }
+                                        }
+                                    } else {
+                                        // 全选 (添加当前显示且未选中的)
+                                        displayedContacts.forEach { contact ->
+                                            if (selected.none { it.id == contact.id }) {
+                                                selected.add(contact)
+                                            }
+                                        }
+                                    }
+                                }
+                            ) {
+                                Text(if (isAllSelected) "取消全选" else "全选")
+                            }
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+
+                Divider(color = MaterialTheme.colorScheme.outlineVariant)
+
                 // 列表
                 LazyColumn(
                     modifier = Modifier.weight(1f)
                 ) {
-                    items(contacts) { user ->
-                        val isSelected = selected.contains(user)
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    if (isSelected) selected.remove(user) else selected.add(user)
-                                }
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Checkbox
-                            Box(
+                    if (displayedContacts.isEmpty()) {
+                        item {
+                            Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                                Text("暂无联系人", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    } else {
+                        items(displayedContacts) { user ->
+                            val isSelected = selected.any { it.id == user.id }
+                            Row(
                                 modifier = Modifier
-                                    .size(24.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isSelected) LinkBlue else MaterialTheme.colorScheme.surface)
-                                    .border(
-                                        width = 1.dp, 
-                                        color = if (isSelected) LinkBlue else MaterialTheme.colorScheme.outlineVariant,
-                                        shape = CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        if (isSelected) {
+                                            selected.removeAll { it.id == user.id }
+                                        } else {
+                                            selected.add(user)
+                                        }
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                if (isSelected) {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(16.dp)
-                                    )
+                                // Checkbox
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
+                                        .border(
+                                            width = 1.dp, 
+                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                            shape = CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (isSelected) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                                
+                                Spacer(modifier = Modifier.width(16.dp))
+                                
+                                // 头像
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(text = user.name.first().toString(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                
+                                Spacer(modifier = Modifier.width(12.dp))
+                                
+                                Column {
+                                    Text(text = user.name, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
+                                    // 显示标签 (可选)
+                                    if (user.tags.isNotEmpty()) {
+                                        Text(
+                                            text = user.tags.joinToString(", "),
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
                             }
-                            
-                            Spacer(modifier = Modifier.width(16.dp))
-                            
-                            // 头像
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(text = user.name.first().toString(), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            
-                            Spacer(modifier = Modifier.width(12.dp))
-                            
-                            Text(text = user.name, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }
@@ -957,7 +1313,7 @@ fun ParticipantSelectionDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = { onConfirm(selected) },
-                        colors = ButtonDefaults.buttonColors(containerColor = LinkBlue)
+                        colors = ButtonDefaults.buttonColors(containerColor = BellOrange)
                     ) {
                         Text("确定")
                     }

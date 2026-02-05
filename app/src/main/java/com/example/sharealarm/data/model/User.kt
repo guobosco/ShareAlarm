@@ -15,6 +15,11 @@ data class User(
     val name: String = "",
     val email: String = "",
     val photoUrl: String = "",
+    val tags: List<String> = emptyList(), // 用户标签
+    val shareAlarmId: String = "", // 飞铃号
+    val remarkName: String = "", // 备注名
+    val phoneNumber: String = "", // 电话
+    val memo: String = "", // 备忘
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )
