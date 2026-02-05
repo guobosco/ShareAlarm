@@ -1,4 +1,4 @@
-# ShareAlarm（小秘书）
+# ShareAlarm（共享提醒/闹钟）
 
 一个现代化的共享提醒/闹钟 Android 应用示例，采用 Jetpack Compose 构建精美界面。目前项目处于演示阶段，使用本地模拟数据展示核心交互流程。
 
